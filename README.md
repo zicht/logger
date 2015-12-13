@@ -1,5 +1,7 @@
 # logger
-First go project to see how it all works, was missing a logger so desided to make this logger (inspired by monolog).
+First go project to see how it all works, was missing a logger so decided to make this logger (inspired by monolog).
+
+It supports multiple handlers/processors and custom formatter (see tests)
 
 # install:
 go get -u github.com/pbergman/logger
@@ -14,8 +16,28 @@ import (
 )
 
 func main() {
-	logger := logger.New("foo", logger.ALL^logger.DEBUG, printHandler.New())
-	logger.Debug("foo") // Will not be printed
-	logger.Info("foo")  // Will be printed
+	log := logger.NewLogger("foo", handlers.NewPrintHandler(logger.INFO))
+	log.Debug("foo") // Will not be printed
+	log.Info("foo")  // Will be printed
+}
+```
+to add a process to for example add the version to the context:
+```
+package main
+
+import (
+	"runtime"
+	"github.com/pbergman/logger"
+	"github.com/pbergman/logger/handlers"
+)
+
+func main() {
+	log := logger.NewLogger("foo", handlers.NewPrintHandler(logger.INFO))
+	log.Info("foo")  // Will print something like : [2015-12-12 00:18:33] foo.INFO: foo {}
+	log.AddProcessor(func(context map[string]interface{}) {
+		context["version"] = runtime.Version()
+	})
+	log.Info("foo")  // Will print something like : [2015-12-12 00:18:33] foo.INFO: foo {"version":"go1.5.1"}
+
 }
 ```
