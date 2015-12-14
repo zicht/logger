@@ -1,6 +1,8 @@
 package logger
 
-import "time"
+import (
+	"time"
+)
 
 type MessageInterface interface {
 	AddContext(name string, value interface{})
@@ -11,40 +13,52 @@ type MessageInterface interface {
 	GetTime() time.Time
 }
 
-type contextMessage struct {
+type record struct {
 	message string
-	context map[string]interface{}
-	time    time.Time
+	extra	map[string]interface{}
+	time	time.Time
 }
 
-func (c *contextMessage) AddContext(name string, value interface{}) {
-	c.context[name] = value
+func (r *record) AddContext(name string, value interface{}) {
+	r.extra[name] = value
 }
 
-func (c *contextMessage) SetContext(context map[string]interface{}) {
-	c.context = context
+func (r *record) SetContext(c map[string]interface{}) {
+	r.extra = c
 }
 
-func (c *contextMessage) SetTime(t time.Time) {
-	c.time = t
+func (m record) GetContext() map[string]interface{} {
+	return m.extra
 }
 
-func (c contextMessage) GetTime() time.Time {
-	return c.time
+func (r *record) SetTime(t time.Time) {
+	r.time = t
 }
 
-func (c contextMessage) GetContext() map[string]interface{} {
-	return c.context
+func (r record) GetTime() time.Time {
+	return r.time
 }
 
-func (c contextMessage) GetMessage() string {
-	return c.message
+func (r record) GetMessage() string {
+	return r.message
 }
 
-func NewMessage(message string) *contextMessage {
-	return &contextMessage{message: message, context: make(map[string]interface{}, 1), time: time.Now()}
+// Create a message without any context,
+// context can be added later by calling
+// AddContext and SetContext methods
+func NewMessage(m string) *record {
+	return &record{
+		message: m,
+		extra:	 make(map[string]interface{}),
+		time:	 time.Now(),
+	}
 }
 
-func NewContextMessage(message string, context map[string]interface{}) *contextMessage {
-	return &contextMessage{message: message, context: context, time: time.Now()}
+// Create a message with context
+func NewContextMessage(m string, context map[string]interface{}) *record {
+	return &record{
+		message: m,
+		extra:	 context,
+		time:	 time.Now(),
+	}
 }

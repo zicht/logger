@@ -1,9 +1,6 @@
 package stringutil_test
 
 import (
-	"encoding/json"
-	"fmt"
-
 	"github.com/pbergman/logger"
 	"github.com/pbergman/logger/handlers"
 )
@@ -12,22 +9,9 @@ type formatter struct {
 	logger.Formatter
 }
 
-func New() *formatter {
-	return &formatter{logger.Formatter{FormatLine: "%s.%s: %s %s\n"}}
-}
-
-func (f *formatter) Format(name string, level string, message logger.MessageInterface) string {
-	return fmt.Sprintf(f.FormatLine, name, level, message.GetMessage(), toString(message.GetContext()))
-}
-
-func toString(context map[string]interface{}) string {
-	json, _ := json.Marshal(context)
-	return string(json)
-}
-
 func ExampleOutputDebug() {
-	handler := handlers.NewPrintHandler(logger.DEBUG)
-	handler.SetFormatter(New())
+	handler := handlers.NewStdoutHandler(logger.DEBUG)
+	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }} {{ .extra | json }}\n")
 	message := logger.NewMessage("foo")
 	log := logger.NewLogger("foo")
 	log.AddHandler(handler)
@@ -44,8 +28,8 @@ func ExampleOutputDebug() {
 }
 
 func ExampleOutputInfo() {
-	handler := handlers.NewPrintHandler(logger.INFO)
-	handler.SetFormatter(New())
+	handler := handlers.NewStdoutHandler(logger.INFO)
+	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }} {{ .extra | json }}\n")
 	message := logger.NewMessage("foo")
 	log := logger.NewLogger("foo")
 	log.AddHandler(handler)
@@ -61,8 +45,8 @@ func ExampleOutputInfo() {
 }
 
 func ExampleOutputNotice() {
-	handler := handlers.NewPrintHandler(logger.NOTICE)
-	handler.SetFormatter(New())
+	handler := handlers.NewStdoutHandler(logger.NOTICE)
+	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }} {{ .extra | json }}\n")
 	message := logger.NewMessage("foo")
 	log := logger.NewLogger("foo")
 	log.AddHandler(handler)
@@ -77,8 +61,8 @@ func ExampleOutputNotice() {
 }
 
 func ExampleOutputWarning() {
-	handler := handlers.NewPrintHandler(logger.WARNING)
-	handler.SetFormatter(New())
+	handler := handlers.NewStdoutHandler(logger.WARNING)
+	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }} {{ .extra | json }}\n")
 	message := logger.NewMessage("foo")
 	log := logger.NewLogger("foo")
 	log.AddHandler(handler)
@@ -92,8 +76,8 @@ func ExampleOutputWarning() {
 }
 
 func ExampleOutputError() {
-	handler := handlers.NewPrintHandler(logger.ERROR)
-	handler.SetFormatter(New())
+	handler := handlers.NewStdoutHandler(logger.ERROR)
+	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }} {{ .extra | json }}\n")
 	message := logger.NewMessage("foo")
 	log := logger.NewLogger("foo")
 	log.AddHandler(handler)
@@ -106,8 +90,8 @@ func ExampleOutputError() {
 }
 
 func ExampleOutputCritical() {
-	handler := handlers.NewPrintHandler(logger.CRITICAL)
-	handler.SetFormatter(New())
+	handler := handlers.NewStdoutHandler(logger.CRITICAL)
+	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }} {{ .extra | json }}\n")
 	message := logger.NewMessage("foo")
 	log := logger.NewLogger("foo")
 	log.AddHandler(handler)
@@ -119,8 +103,8 @@ func ExampleOutputCritical() {
 }
 
 func ExampleOutputAlert() {
-	handler := handlers.NewPrintHandler(logger.ALERT)
-	handler.SetFormatter(New())
+	handler := handlers.NewStdoutHandler(logger.ALERT)
+	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }} {{ .extra | json }}\n")
 	message := logger.NewMessage("foo")
 	log := logger.NewLogger("foo")
 	log.AddHandler(handler)
@@ -131,8 +115,8 @@ func ExampleOutputAlert() {
 }
 
 func ExampleOutputEmerency() {
-	handler := handlers.NewPrintHandler(logger.EMERGENCY)
-	handler.SetFormatter(New())
+	handler := handlers.NewStdoutHandler(logger.EMERGENCY)
+	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }} {{ .extra | json }}\n")
 	message := logger.NewMessage("foo")
 	log := logger.NewLogger("foo")
 	log.AddHandler(handler)
@@ -142,8 +126,8 @@ func ExampleOutputEmerency() {
 }
 
 func ExampleMultipleOutput() {
-	handler := handlers.NewPrintHandler(logger.EMERGENCY)
-	handler.SetFormatter(New())
+	handler := handlers.NewStdoutHandler(logger.EMERGENCY)
+	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }} {{ .extra | json }}\n")
 	message := logger.NewMessage("foo")
 	log := logger.NewLogger("foo", handler, handler)
 	logAll(log, message)
@@ -153,8 +137,8 @@ func ExampleMultipleOutput() {
 }
 
 func ExampleContext() {
-	handler := handlers.NewPrintHandler(logger.EMERGENCY)
-	handler.SetFormatter(New())
+	handler := handlers.NewStdoutHandler(logger.EMERGENCY)
+	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }} {{ .extra | json }}\n")
 	message := logger.NewContextMessage("bar", map[string]interface{}{"bar": "foo"})
 	log := logger.NewLogger("foo", handler)
 	logAll(log, message)
@@ -163,8 +147,8 @@ func ExampleContext() {
 }
 
 func ExampleProcessor() {
-	handler := handlers.NewPrintHandler(logger.EMERGENCY)
-	handler.SetFormatter(New())
+	handler := handlers.NewStdoutHandler(logger.EMERGENCY)
+	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }} {{ .extra | json }}\n")
 	message := logger.NewContextMessage("bar", map[string]interface{}{"bar": "foo"})
 	log := logger.NewLogger("foo", handler)
 	log.AddProcessor(func(context map[string]interface{}) {
