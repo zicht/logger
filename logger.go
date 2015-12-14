@@ -1,3 +1,5 @@
+// Package logger, it a is a simple logger inspired by monolog
+// it can register multiple handlers to write the records to.
 package logger
 
 import "time"

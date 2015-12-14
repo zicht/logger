@@ -11,6 +11,7 @@ type stdoutHandler struct {
 	logger.Handler
 }
 
+// NewStdoutHandler will write all records to stdout (os.stdout)
 func NewStdoutHandler(level int16) *stdoutHandler  {
 	return &stdoutHandler {logger.Handler{Level: level, Formatter: formatters.NewLineFormatter()}}
 }

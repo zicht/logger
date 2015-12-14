@@ -43,9 +43,8 @@ func (r record) GetMessage() string {
 	return r.message
 }
 
-// Create a message without any context,
-// context can be added later by calling
-// AddContext and SetContext methods
+// NewMessage creates a message without any context, context
+// can be added later by calling AddContext and SetContext methods
 func NewMessage(m string) *record {
 	return &record{
 		message: m,
@@ -54,7 +53,7 @@ func NewMessage(m string) *record {
 	}
 }
 
-// Create a message with context
+// NewContextMessage creates a message with context
 func NewContextMessage(m string, context map[string]interface{}) *record {
 	return &record{
 		message: m,
