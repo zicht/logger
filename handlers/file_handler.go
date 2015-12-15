@@ -13,19 +13,10 @@ type fileHandler struct {
 
 // NewFileHandler will write all records to give file, if not exist will create file
 func NewFileHandler(filename string, level int16) *fileHandler  {
-
 	file, err := os.OpenFile(filename, getFlags(filename) , 0660)
-
-//	if (os.IsExist(err)) {
-////		panic(err)
-//
-//		//file, err := os.OpenFile(filename, os.O_RDWR|os.O_EXCL|os.O_APPEND , 0660)
-//	}
-//
 	if (err != nil) {
 		panic(err)
 	}
-
 	return &fileHandler {
 		logger.Handler{
 			Level: level,
