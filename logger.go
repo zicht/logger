@@ -4,7 +4,6 @@ package logger
 
 import (
 	"time"
-	"reflect"
 	"fmt"
 	"sync"
 )
@@ -59,15 +58,15 @@ func (l *logger) log(level int16, m interface{}) {
 }
 
 // create a record struct from given argument
-func (l *logger) createRecord(m interface{}) (message *record) {
+func (l *logger) createRecord(m interface{}) *record {
 
-	message = &record{extra: make(map[string]interface{},0)}
+	message := &record{extra: make(map[string]interface{},0)}
 
-	switch m := m.(type) {
+	switch m.(type) {
 	case *record:
 		message = m.(*record)
 	case error:
-		message = m.Error()
+		message.message = m.(error).Error()
 	case string:
 		message.message = m.(string)
 	default:
@@ -75,7 +74,7 @@ func (l *logger) createRecord(m interface{}) (message *record) {
 	}
 
 	message.SetTime(time.Now())
-	return
+	return message
 }
 
 // AddProcessor add a record processor to stack that
