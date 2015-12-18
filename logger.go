@@ -2,7 +2,12 @@
 // it can register multiple handlers to write the records to.
 package logger
 
-import "time"
+import (
+	"time"
+	"reflect"
+	"fmt"
+	"sync"
+)
 
 const (
 	// Levels as described by http://tools.ietf.org/html/rfc5424
@@ -17,34 +22,35 @@ const (
 )
 
 type LoggerInterface interface {
-	Emergency(message MessageInterface)
-	Alert(message MessageInterface)
-	Critical(message MessageInterface)
-	Error(message MessageInterface)
-	Warning(message MessageInterface)
-	Notice(message MessageInterface)
-	Info(message MessageInterface)
-	Debug(message MessageInterface)
+	Emergency(message interface{})
+	Alert(message interface{})
+	Critical(message interface{})
+	Error(message interface{})
+	Warning(message interface{})
+	Notice(message interface{})
+	Info(message interface{})
+	Debug(message interface{})
 }
 
 type logger struct {
 	name       string
 	handlers   []HandlerInterface
 	processors []func(context map[string]interface{})
+	mutex	   sync.Mutex
 }
 
 func NewLogger(name string, handlers ...HandlerInterface) *logger {
 	return &logger{name: name, handlers: handlers}
 }
 
-func (l *logger) log(level int16, message MessageInterface) {
-
-	message.SetTime(time.Now())
-
+// Main function that will call the handlers and processors
+func (l *logger) log(level int16, m interface{}) {
+	message := l.createRecord(m)
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 	for _, processor := range l.processors {
 		processor(message.GetContext())
 	}
-
 	for _, handler := range l.handlers {
 		if handler.Support(level) {
 			handler.Write(l.name, levelToString(level), message)
@@ -52,43 +58,71 @@ func (l *logger) log(level int16, message MessageInterface) {
 	}
 }
 
+// create a record struct from given argument
+func (l *logger) createRecord(m interface{}) (message *record) {
+
+	message = &record{extra: make(map[string]interface{},0)}
+
+	switch m := m.(type) {
+	case *record:
+		message = m.(*record)
+	case error:
+		message = m.Error()
+	case string:
+		message.message = m.(string)
+	default:
+		message.message = fmt.Sprintf("%#v", m)
+	}
+
+	message.SetTime(time.Now())
+	return
+}
+
+// AddProcessor add a record processor to stack that
+// can edit the extra records of all messages
 func (l *logger) AddProcessor(processor func(context map[string]interface{})) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 	l.processors = append(l.processors, processor)
 }
 
+// AddHandler adds a hanlder to the stack for outputting the messages
 func (l *logger) AddHandler(handler HandlerInterface) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 	l.handlers = append(l.handlers, handler)
 }
 
-func (l *logger) Emergency(message MessageInterface) {
+// Emergency will dispatch a log event of severity Emergency
+func (l *logger) Emergency(message interface{}) {
 	l.log(EMERGENCY, message)
 }
-
-func (l *logger) Alert(message MessageInterface) {
+// Alert will dispatch a log event of severity Alert
+func (l *logger) Alert(message interface{}) {
 	l.log(ALERT, message)
 }
-
-func (l *logger) Critical(message MessageInterface) {
+// Critical will dispatch a log event of severity Critical
+func (l *logger) Critical(message interface{}) {
 	l.log(CRITICAL, message)
 }
-
-func (l *logger) Error(message MessageInterface) {
+// Error will dispatch a log event of severity Error
+func (l *logger) Error(message interface{}) {
 	l.log(ERROR, message)
 }
-
-func (l *logger) Warning(message MessageInterface) {
+// Warning will dispatch a log event of severity Warning
+func (l *logger) Warning(message interface{}) {
 	l.log(WARNING, message)
 }
-
-func (l *logger) Notice(message MessageInterface) {
+// Notice will dispatch a log event of severity Notice
+func (l *logger) Notice(message interface{}) {
 	l.log(NOTICE, message)
 }
-
-func (l *logger) Info(message MessageInterface) {
+// Info will dispatch a log event of severity Info
+func (l *logger) Info(message interface{}) {
 	l.log(INFO, message)
 }
-
-func (l *logger) Debug(message MessageInterface) {
+// Debug will dispatch a log event of severity Debug
+func (l *logger) Debug(message interface{}) {
 	l.log(DEBUG, message)
 }
 
