@@ -49,7 +49,6 @@ func NewMessage(m string) *record {
 	return &record{
 		message: m,
 		extra:	 make(map[string]interface{}),
-		time:	 time.Now(),
 	}
 }
 
@@ -58,6 +57,5 @@ func NewContextMessage(m string, context map[string]interface{}) *record {
 	return &record{
 		message: m,
 		extra:	 context,
-		time:	 time.Now(),
 	}
 }
