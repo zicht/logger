@@ -12,10 +12,10 @@ type stdoutHandler struct {
 }
 
 // NewStdoutHandler will write all records to stdout (os.stdout)
-func NewStdoutHandler(level int16) *stdoutHandler  {
-	return &stdoutHandler {logger.Handler{Level: level, Formatter: formatters.NewLineFormatter()}}
+func NewStdoutHandler(level int16) *stdoutHandler {
+	return &stdoutHandler{logger.Handler{Level: level, Formatter: formatters.NewLineFormatter()}}
 }
 
 func (h *stdoutHandler) Write(name string, level string, message logger.MessageInterface) {
-	h.GetFormatter().Execute(name, os.Stdout, h.CreateDataMap(message, name, level));
+	h.GetFormatter().Execute(name, os.Stdout, h.CreateDataMap(message, name, level))
 }
