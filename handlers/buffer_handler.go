@@ -15,11 +15,11 @@ type bufferHandler struct {
 
 // NewBufferHandler initialize a new handler that writes the records to
 // the buffer and can be fetched later. (fo example getBuffer.String())
-func NewBufferHandler(level int16) *bufferHandler   {
-	return &bufferHandler {
+func NewBufferHandler(level int16) *bufferHandler {
+	return &bufferHandler{
 		logger.Handler{
-			Level: 		level,
-			Formatter: 	formatters.NewLineFormatter(),
+			Level:     level,
+			Formatter: formatters.NewLineFormatter(),
 		},
 		bytes.NewBuffer(nil),
 	}
@@ -27,7 +27,7 @@ func NewBufferHandler(level int16) *bufferHandler   {
 
 // Write records to buffer
 func (h *bufferHandler) Write(name string, level string, message logger.MessageInterface) {
-	h.GetFormatter().Execute(name, h.buffer, h.CreateDataMap(message, name, level));
+	h.GetFormatter().Execute(name, h.buffer, h.CreateDataMap(message, name, level))
 }
 
 // Will return interanl used buffer
