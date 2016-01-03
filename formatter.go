@@ -1,9 +1,9 @@
 package logger
 
 import (
-	"text/template"
 	"encoding/json"
 	"io"
+	"text/template"
 )
 
 type FormatterInterface interface {
@@ -20,12 +20,12 @@ func (f *Formatter) SetFormatLine(l string) {
 }
 
 func (f *Formatter) InitTemplate(name string) *template.Template {
-	tmpl := template.New(name);
+	tmpl := template.New(name)
 	tmpl.Funcs(template.FuncMap{
-		"json": func(v interface {}) string {
+		"json": func(v interface{}) string {
 			j, _ := json.Marshal(v)
 			return string(j)
 		},
 	})
-	return tmpl;
+	return tmpl
 }
