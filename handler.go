@@ -26,10 +26,10 @@ func (h Handler) Support(level int16) bool {
 
 func (h Handler) CreateDataMap(message MessageInterface, name string, level string) map[string]interface{} {
 	return map[string]interface{}{
-		"message": 	message.GetMessage(),
-		"extra": 	message.GetContext(),
-		"time":  	message.GetTime(),
-		"name": 	name,
-		"level": 	level,
+		"message": message.GetMessage(),
+		"extra":   message.GetContext(),
+		"time":    message.GetTime(),
+		"name":    name,
+		"level":   level,
 	}
 }
