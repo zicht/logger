@@ -3,9 +3,9 @@
 package logger
 
 import (
-	"time"
 	"fmt"
 	"sync"
+	"time"
 )
 
 const (
@@ -31,19 +31,19 @@ type LoggerInterface interface {
 	Debug(message interface{})
 }
 
-type logger struct {
+type Logger struct {
 	name       string
 	handlers   []HandlerInterface
 	processors []func(context map[string]interface{})
-	mutex	   sync.Mutex
+	mutex      sync.Mutex
 }
 
-func NewLogger(name string, handlers ...HandlerInterface) *logger {
-	return &logger{name: name, handlers: handlers}
+func NewLogger(name string, handlers ...HandlerInterface) *Logger {
+	return &Logger{name: name, handlers: handlers}
 }
 
 // Main function that will call the handlers and processors
-func (l *logger) log(level int16, m interface{}) {
+func (l *Logger) log(level int16, m interface{}) {
 	message := l.createRecord(m)
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -58,9 +58,9 @@ func (l *logger) log(level int16, m interface{}) {
 }
 
 // create a record struct from given argument
-func (l *logger) createRecord(m interface{}) *record {
+func (l *Logger) createRecord(m interface{}) *record {
 
-	message := &record{extra: make(map[string]interface{},0)}
+	message := &record{extra: make(map[string]interface{}, 0)}
 
 	switch m.(type) {
 	case *record:
@@ -79,49 +79,56 @@ func (l *logger) createRecord(m interface{}) *record {
 
 // AddProcessor add a record processor to stack that
 // can edit the extra records of all messages
-func (l *logger) AddProcessor(processor func(context map[string]interface{})) {
+func (l *Logger) AddProcessor(processor func(context map[string]interface{})) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	l.processors = append(l.processors, processor)
 }
 
 // AddHandler adds a hanlder to the stack for outputting the messages
-func (l *logger) AddHandler(handler HandlerInterface) {
+func (l *Logger) AddHandler(handler HandlerInterface) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	l.handlers = append(l.handlers, handler)
 }
 
 // Emergency will dispatch a log event of severity Emergency
-func (l *logger) Emergency(message interface{}) {
+func (l *Logger) Emergency(message interface{}) {
 	l.log(EMERGENCY, message)
 }
+
 // Alert will dispatch a log event of severity Alert
-func (l *logger) Alert(message interface{}) {
+func (l *Logger) Alert(message interface{}) {
 	l.log(ALERT, message)
 }
+
 // Critical will dispatch a log event of severity Critical
-func (l *logger) Critical(message interface{}) {
+func (l *Logger) Critical(message interface{}) {
 	l.log(CRITICAL, message)
 }
+
 // Error will dispatch a log event of severity Error
-func (l *logger) Error(message interface{}) {
+func (l *Logger) Error(message interface{}) {
 	l.log(ERROR, message)
 }
+
 // Warning will dispatch a log event of severity Warning
-func (l *logger) Warning(message interface{}) {
+func (l *Logger) Warning(message interface{}) {
 	l.log(WARNING, message)
 }
+
 // Notice will dispatch a log event of severity Notice
-func (l *logger) Notice(message interface{}) {
+func (l *Logger) Notice(message interface{}) {
 	l.log(NOTICE, message)
 }
+
 // Info will dispatch a log event of severity Info
-func (l *logger) Info(message interface{}) {
+func (l *Logger) Info(message interface{}) {
 	l.log(INFO, message)
 }
+
 // Debug will dispatch a log event of severity Debug
-func (l *logger) Debug(message interface{}) {
+func (l *Logger) Debug(message interface{}) {
 	l.log(DEBUG, message)
 }
 
