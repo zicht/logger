@@ -12,8 +12,8 @@ type stderrHandler struct {
 }
 
 // NewStderrHandler will write all records to stderr (os.stderr)
-func NewStderrHandler(level int16) *stderrHandler  {
-	return &stderrHandler {logger.Handler{Level: level, Formatter: formatters.NewLineFormatter()}}
+func NewStderrHandler(level int16) *stderrHandler {
+	return &stderrHandler{logger.Handler{Level: level, Formatter: formatters.NewLineFormatter()}}
 }
 
 func (h *stderrHandler) Write(name string, level string, message logger.MessageInterface) {
