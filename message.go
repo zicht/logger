@@ -15,8 +15,8 @@ type MessageInterface interface {
 
 type record struct {
 	message string
-	extra	map[string]interface{}
-	time	time.Time
+	extra   map[string]interface{}
+	time    time.Time
 }
 
 func (r *record) AddContext(name string, value interface{}) {
@@ -48,7 +48,7 @@ func (r record) GetMessage() string {
 func NewMessage(m string) *record {
 	return &record{
 		message: m,
-		extra:	 make(map[string]interface{}),
+		extra:   make(map[string]interface{}),
 	}
 }
 
@@ -56,6 +56,6 @@ func NewMessage(m string) *record {
 func NewContextMessage(m string, context map[string]interface{}) *record {
 	return &record{
 		message: m,
-		extra:	 context,
+		extra:   context,
 	}
 }
