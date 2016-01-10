@@ -12,7 +12,7 @@ type lineFormatter struct {
 
 func NewLineFormatter() *lineFormatter {
 	return &lineFormatter{logger.Formatter{
-		FormatLine: "[{{ .time.Format \"2006-01-02 15:04:05.000000\" }}] {{ .name }}.{{ .level }}: {{ .message }} {{ json true .extra }}\n",
+		FormatLine: "[{{ .time.Format \"2006-01-02 15:04:05.000000\" }}] {{ .name }}.{{ .trace.PackageName }}.{{ .level }}: {{ .message }} {{ json true .extra }}\n",
 	}}
 }
 

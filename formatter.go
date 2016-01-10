@@ -22,7 +22,7 @@ func (f *Formatter) SetFormatLine(l string) {
 func (f *Formatter) InitTemplate(name string) *template.Template {
 	tmpl := template.New(name)
 	tmpl.Funcs(template.FuncMap{
-		"json": func(hide_empty bool, v interface{}, ) string {
+		"json": func(hide_empty bool, v interface{}) string {
 			j, _ := json.Marshal(v)
 			if len(string(j)) > 2 || hide_empty == false {
 				return string(j)

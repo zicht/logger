@@ -28,6 +28,7 @@ func (h Handler) CreateDataMap(message MessageInterface, name string, level stri
 	return map[string]interface{}{
 		"message": message.GetMessage(),
 		"extra":   message.GetContext(),
+		"trace":   message.GetTrace(),
 		"time":    message.GetTime(),
 		"name":    name,
 		"level":   level,

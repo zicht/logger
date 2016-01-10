@@ -18,6 +18,9 @@ const (
 	NOTICE    int16 = 250
 	INFO      int16 = 200
 	DEBUG     int16 = 100
+
+	STATE_RUNNING = 1 << iota
+	STATE_PAUSED
 )
 
 type LoggerInterface interface {
@@ -34,37 +37,70 @@ type LoggerInterface interface {
 type Logger struct {
 	name       string
 	handlers   []HandlerInterface
-	processors []func(context map[string]interface{})
+	processors []func(record *Record)
 	mutex      sync.Mutex
+	status     int
+	queue      *queue
 }
 
 func NewLogger(name string, handlers ...HandlerInterface) *Logger {
-	return &Logger{name: name, handlers: handlers}
+	return &Logger{
+		name:     name,
+		handlers: handlers,
+		status:   STATE_RUNNING,
+	}
 }
 
-// Main function that will call the handlers and processors
-func (l *Logger) log(level int16, m interface{}) {
-	message := l.createRecord(m)
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
+func (l *Logger) dispatch(record *Record) {
 	for _, processor := range l.processors {
-		processor(message.GetContext())
+		processor(record)
 	}
+
 	for _, handler := range l.handlers {
-		if handler.Support(level) {
-			handler.Write(l.name, levelToString(level), message)
+		if handler.Support(record.GetLevel()) {
+			handler.Write(l.name, levelToString(record.GetLevel()), record)
 		}
 	}
 }
 
-// create a record struct from given argument
-func (l *Logger) createRecord(m interface{}) *record {
+func (l *Logger) GetState() int {
+	return l.status
+}
 
-	message := &record{extra: make(map[string]interface{}, 0)}
+// Pause will puase the output and capture the log records
+// in a queue limited to the given buffer size, when resumed
+// the records will be dispatched
+func (l *Logger) Pause(bufferSize int) {
+	l.mutex.Lock()
+	l.queue = NewQueue(bufferSize)
+	l.status = STATE_PAUSED
+	l.mutex.Unlock()
+}
+
+func (l *Logger) Resume() {
+
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	for l.queue.Valid() {
+		l.dispatch(l.queue.Pop())
+	}
+	l.queue = nil
+	l.status = STATE_RUNNING
+}
+
+// Main function that will call the handlers and processors
+func (l *Logger) log(level int16, m interface{}) {
+
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	message := &Record{extra: make(map[string]interface{}, 0)}
 
 	switch m.(type) {
-	case *record:
-		message = m.(*record)
+	case *Record:
+		message.message = m.(*Record).GetMessage()
+		message.extra = m.(*Record).GetContext()
 	case error:
 		message.message = m.(error).Error()
 	case string:
@@ -74,22 +110,38 @@ func (l *Logger) createRecord(m interface{}) *record {
 	}
 
 	message.SetTime(time.Now())
-	return message
+	message.SetLevel(level)
+	message.SetTrace(NewTrace())
+
+	switch l.status {
+	case STATE_RUNNING:
+		l.dispatch(message)
+	case STATE_PAUSED:
+		l.queue.Push(message)
+	}
 }
 
 // AddProcessor add a record processor to stack that
 // can edit the extra records of all messages
-func (l *Logger) AddProcessor(processor func(context map[string]interface{})) {
+func (l *Logger) AddProcessor(processor func(record *Record)) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	l.processors = append(l.processors, processor)
 }
 
-// AddHandler adds a hanlder to the stack for outputting the messages
+func (l *Logger) GetProcessors() []func(record *Record) {
+	return l.processors
+}
+
+// AddHandler adds a handler to the stack for outputting the messages
 func (l *Logger) AddHandler(handler HandlerInterface) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	l.handlers = append(l.handlers, handler)
+}
+
+func (l *Logger) GetHandlers() []HandlerInterface {
+	return l.handlers
 }
 
 // Emergency will dispatch a log event of severity Emergency
