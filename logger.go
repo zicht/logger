@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"os"
 )
 
 const (
@@ -142,6 +143,23 @@ func (l *Logger) AddHandler(handler HandlerInterface) {
 
 func (l *Logger) GetHandlers() []HandlerInterface {
 	return l.handlers
+}
+
+// CheckError check if error is not nil if
+// so it will print error message and exit
+func (l *Logger) CheckError(err error) {
+	if err != nil {
+		l.log(ERROR, err)
+		os.Exit(1)
+	}
+}
+
+// CheckWarning is same as CheckError but will
+// print warning message and will not exit
+func (l *Logger) CheckWarning(err error) {
+	if err != nil {
+		l.log(WARNING, err)
+	}
 }
 
 // Emergency will dispatch a log event of severity Emergency
