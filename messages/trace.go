@@ -1,4 +1,4 @@
-package logger
+package messages
 
 import (
 	"go/parser"

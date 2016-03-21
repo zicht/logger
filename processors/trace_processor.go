@@ -1,19 +1,20 @@
 package processors
 
 import (
-	"github.com/pbergman/logger"
 	"path"
+	"github.com/pbergman/logger/level"
+	"github.com/pbergman/logger/messages"
 )
 
 type TraceProcessor struct {
-	level int16
+	level level.LogLevel
 }
 
-func NewTraceProcessor(level int16) *TraceProcessor {
+func NewTraceProcessor(level level.LogLevel) *TraceProcessor {
 	return &TraceProcessor{level}
 }
 
-func (t *TraceProcessor) Process(record *logger.Record) {
+func (t *TraceProcessor) Process(record *messages.Record) {
 	if record.GetLevel() >= t.level {
 		context := record.GetContext()
 		context["file"] = path.Base(record.GetTrace().FileName)

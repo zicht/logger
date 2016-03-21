@@ -1,4 +1,4 @@
-package logger
+package formatters
 
 import (
 	"encoding/json"
@@ -19,7 +19,7 @@ func (f *Formatter) SetFormatLine(l string) {
 	f.FormatLine = l
 }
 
-func (f *Formatter) InitTemplate(name string) *template.Template {
+func (f *Formatter) initTemplate(name string) *template.Template {
 	tmpl := template.New(name)
 	tmpl.Funcs(template.FuncMap{
 		"json": func(hide_empty bool, v interface{}) string {

@@ -14,9 +14,9 @@ so for example:
 	// so something with arguments and use logger
 	// do some Logger.Debug calls...
 	if verbose {
-		Logger.AddHandler(handlers.NewStdoutHandler(logger.DEBUG))
+		Logger.AddHandler(handlers.NewWriterHandler(os.Stdout, level.DEBUG))
 	} else {
-		Logger.AddHandler(handlers.NewStdoutHandler(logger.INFO))
+		Logger.AddHandler(handlers.NewWriterHandler(os.Stdout, level.DEBUG))
 	}
 	Logger.ResumeOutput() // Will print the queue based on log level
 ```
@@ -28,7 +28,7 @@ If you want to add the file name and line number of error messages you could use
 
 ```
 	processor := processors.NewTraceProcessor(logger.DEBUG)
-	Logger = logger.NewLogger("some_name", 10, handlers.NewStdoutHandler(logger.DEBUG))
+	Logger = logger.NewLogger("some_name", handlers.NewWriterHandler(os.Stdout, level.DEBUG))
 	Logger.AddProcessor(processor.Process)
 ```
 
@@ -38,9 +38,8 @@ for example with different levels. So for example wite to file with lever debug 
 ```
 	Logger = logger.NewLogger(
 		"some_name",
-		10,
-		handlers.NewStdoutHandler(logger.INFO),
-		handlers.NewFileHandler(logger.DEBUG),
+		handlers.NewWriterHandler(os.Stdout, level.INFO),
+		handlers.NewFileHandler("file.ext", logger.DEBUG),
 	)
 
 ```

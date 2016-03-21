@@ -1,7 +1,8 @@
-package logger
+package messages
 
 import (
 	"time"
+	"github.com/pbergman/logger/level"
 )
 
 type MessageInterface interface {
@@ -18,7 +19,7 @@ type Record struct {
 	message string
 	extra   map[string]interface{}
 	time    time.Time
-	level   int16
+	level   level.LogLevel
 	trace   *Trace
 }
 
@@ -30,11 +31,11 @@ func (r *Record) SetContext(c map[string]interface{}) {
 	r.extra = c
 }
 
-func (r *Record) SetLevel(l int16) {
+func (r *Record) SetLevel(l level.LogLevel) {
 	r.level = l
 }
 
-func (m Record) GetLevel() int16 {
+func (m Record) GetLevel() level.LogLevel {
 	return m.level
 }
 
@@ -60,6 +61,10 @@ func (r *Record) SetTime(t time.Time) {
 
 func (r *Record) GetTime() time.Time {
 	return r.time
+}
+
+func (r *Record) SetMessage(m string) {
+	r.message = m
 }
 
 func (r *Record) GetMessage() string {

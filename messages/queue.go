@@ -1,38 +1,38 @@
-package logger
+package messages
 
 import (
 	"sync"
 )
 
-type queue struct {
+type Queue struct {
 	size  int
 	queue chan *Record
 	wg    sync.WaitGroup
 }
 
-func NewQueue(size int) *queue {
-	return &queue{
+func NewQueue(size int) *Queue {
+	return &Queue{
 		size:  size,
 		queue: make(chan *Record, size),
 	}
 }
 
-func (q *queue) Len() int {
+func (q *Queue) Len() int {
 	return len(q.queue)
 }
 
-func (q *queue) Valid() bool {
+func (q *Queue) Valid() bool {
 	return q.Len() > 0
 }
 
-func (q *queue) Push(r *Record) {
+func (q *Queue) Push(r *Record) {
 	for q.Len() >= q.size {
 		q.Pop()
 	}
 	q.queue <- r
 }
 
-func (q *queue) Pop() *Record {
+func (q *Queue) Pop() *Record {
 	if q.Len() > 0 {
 		record := <-q.queue
 		return record
