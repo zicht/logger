@@ -4,12 +4,12 @@ package logger
 
 import (
 	"fmt"
+	"github.com/pbergman/logger/handlers"
+	"github.com/pbergman/logger/level"
+	"github.com/pbergman/logger/messages"
+	"os"
 	"sync"
 	"time"
-	"os"
-	"github.com/pbergman/logger/level"
-	"github.com/pbergman/logger/handlers"
-	"github.com/pbergman/logger/messages"
 )
 
 const (

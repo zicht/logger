@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"io"
-	"github.com/pbergman/logger/level"
 	"github.com/pbergman/logger/formatters"
+	"github.com/pbergman/logger/level"
 	"github.com/pbergman/logger/messages"
+	"io"
 )
 
 type WriterHandler struct {

@@ -1,9 +1,9 @@
 package processors
 
 import (
-	"path"
 	"github.com/pbergman/logger/level"
 	"github.com/pbergman/logger/messages"
+	"path"
 )
 
 type TraceProcessor struct {

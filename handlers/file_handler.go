@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"os"
-	"github.com/pbergman/logger/level"
 	"github.com/pbergman/logger/formatters"
+	"github.com/pbergman/logger/level"
 	"github.com/pbergman/logger/messages"
+	"os"
 )
 
 type FileHandler struct {

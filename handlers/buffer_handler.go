@@ -26,7 +26,6 @@ func NewBufferHandler(level level.LogLevel) *BufferHandler {
 	}
 }
 
-
 func (b BufferHandler) Support(level level.LogLevel) bool {
 	return b.Level <= level
 }

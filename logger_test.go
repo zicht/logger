@@ -3,12 +3,12 @@ package logger
 import (
 	"fmt"
 	"github.com/pbergman/logger/handlers"
-	"github.com/pbergman/logger/processors"
 	"github.com/pbergman/logger/level"
 	"github.com/pbergman/logger/messages"
+	"github.com/pbergman/logger/processors"
+	"io"
 	"os"
 	"testing"
-	"io"
 )
 
 func ExampleNewLogger() {

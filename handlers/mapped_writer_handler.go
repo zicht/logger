@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"io"
-	"github.com/pbergman/logger/level"
 	"github.com/pbergman/logger/formatters"
+	"github.com/pbergman/logger/level"
 	"github.com/pbergman/logger/messages"
+	"io"
 )
 
 type MappedWriterHandler struct {
@@ -18,7 +18,7 @@ func NewMappedWriterHandler(writers map[level.LogLevel]io.Writer) *MappedWriterH
 }
 
 func (h *MappedWriterHandler) Support(level level.LogLevel) bool {
-	for l,_ := range h.writers {
+	for l, _ := range h.writers {
 		if l <= level {
 			return true
 		}
@@ -28,7 +28,7 @@ func (h *MappedWriterHandler) Support(level level.LogLevel) bool {
 
 func (h *MappedWriterHandler) Write(name string, l level.LogLevel, message messages.MessageInterface) {
 	var logLevel level.LogLevel
-	for key,_ := range h.writers {
+	for key, _ := range h.writers {
 		if key <= l {
 			logLevel = key
 		}

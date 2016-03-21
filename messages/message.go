@@ -1,8 +1,8 @@
 package messages
 
 import (
-	"time"
 	"github.com/pbergman/logger/level"
+	"time"
 )
 
 type MessageInterface interface {
