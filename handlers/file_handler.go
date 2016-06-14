@@ -31,7 +31,7 @@ func (f *FileHandler) Support(level level.LogLevel) bool {
 	return f.Level <= level
 }
 
-func (f *FileHandler) Write(name string, level level.LogLevel, message messages.MessageInterface) {
+func (f *FileHandler) Write(name string, level level.LogLevel, message *messages.Record) {
 	f.GetFormatter().Execute(name, f.File, f.CreateDataMap(message, name, level))
 }
 

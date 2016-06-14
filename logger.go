@@ -4,12 +4,13 @@ package logger
 
 import (
 	"fmt"
-	"github.com/pbergman/logger/handlers"
-	"github.com/pbergman/logger/level"
-	"github.com/pbergman/logger/messages"
 	"os"
 	"sync"
 	"time"
+	"github.com/pbergman/logger/handlers"
+	"github.com/pbergman/logger/level"
+	"github.com/pbergman/logger/messages"
+	"github.com/pbergman/logger/debug"
 )
 
 const (
@@ -26,7 +27,14 @@ type LoggerInterface interface {
 	Notice(message interface{})
 	Info(message interface{})
 	Debug(message interface{})
+	AddProcessor(processor func(record *messages.Record))
+	GetProcessors() []func(record *messages.Record)
+	AddHandler(handler handlers.HandlerInterface)
+	GetHandlers() []handlers.HandlerInterface
+	CheckError(err error)
+	CheckWarning(err error)
 }
+
 
 type Logger struct {
 	name       string
@@ -36,14 +44,16 @@ type Logger struct {
 	status     int
 	queue      *messages.Queue
 	Trace      bool
+	TraceDepth int
 }
 
 func NewLogger(name string, handlers ...handlers.HandlerInterface) *Logger {
 	return &Logger{
-		name:     name,
-		handlers: handlers,
-		status:   STATE_RUNNING,
-		Trace:    true,
+		name:       name,
+		handlers:   handlers,
+		status:     STATE_RUNNING,
+		Trace:      true,
+		TraceDepth: 3,
 	}
 }
 
@@ -53,8 +63,8 @@ func (l *Logger) dispatch(record *messages.Record) {
 	}
 
 	for _, handler := range l.handlers {
-		if handler.Support(record.GetLevel()) {
-			handler.Write(l.name, record.GetLevel(), record)
+		if handler.Support(record.Level) {
+			handler.Write(l.name, record.Level, record)
 		}
 	}
 }
@@ -88,26 +98,30 @@ func (l *Logger) Resume() {
 func (l *Logger) log(level level.LogLevel, m interface{}) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	var message = new(messages.Record)
-	switch m.(type) {
+	var message *messages.Record
+
+	switch t := m.(type) {
 	case *messages.Record:
-		message.SetMessage(m.(*messages.Record).GetMessage())
-		message.SetContext(m.(*messages.Record).GetContext())
+		message = t
 	case error:
-		message.SetMessage(m.(error).Error())
-		message.SetContext(make(map[string]interface{}, 0))
+		message = new(messages.Record)
+		message.Message = t.Error()
+		message.Extra   = make(map[string]interface{}, 0)
 	case string:
-		message.SetMessage(m.(string))
-		message.SetContext(make(map[string]interface{}, 0))
+		message = new(messages.Record)
+		message.Message = t
+		message.Extra   = make(map[string]interface{}, 0)
 	default:
-		message.SetMessage(fmt.Sprintf("%#v", m))
-		message.SetContext(make(map[string]interface{}, 0))
+		message = new(messages.Record)
+		message.Message = fmt.Sprintf("%#v", t)
+		message.Extra   = make(map[string]interface{}, 0)
 	}
 
-	message.SetTime(time.Now())
-	message.SetLevel(level)
+	message.Time  = time.Now()
+	message.Level = level
+
 	if l.Trace {
-		message.SetTrace(messages.NewTrace())
+		message.Trace = debug.NewTrace(l.TraceDepth)
 	}
 
 	switch l.status {

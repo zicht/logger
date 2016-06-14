@@ -21,6 +21,6 @@ func NewWriterHandler(writer io.Writer, level level.LogLevel) *WriterHandler {
 	return &WriterHandler{writer, Handler{Level: level, Formatter: formatters.NewLineFormatter()}}
 }
 
-func (h *WriterHandler) Write(name string, level level.LogLevel, message messages.MessageInterface) {
+func (h *WriterHandler) Write(name string, level level.LogLevel, message *messages.Record) {
 	h.GetFormatter().Execute(name, h.writer, h.CreateDataMap(message, name, level))
 }

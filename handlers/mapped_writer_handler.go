@@ -26,7 +26,7 @@ func (h *MappedWriterHandler) Support(level level.LogLevel) bool {
 	return false
 }
 
-func (h *MappedWriterHandler) Write(name string, l level.LogLevel, message messages.MessageInterface) {
+func (h *MappedWriterHandler) Write(name string, l level.LogLevel, message *messages.Record) {
 	var logLevel level.LogLevel
 	for key, _ := range h.writers {
 		if key <= l {

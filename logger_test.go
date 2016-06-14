@@ -172,7 +172,7 @@ func BenchmarkNoTrace(b *testing.B) {
 	b.StopTimer()
 }
 
-func logAll(l LoggerInterface, m messages.MessageInterface) {
+func logAll(l LoggerInterface, m *messages.Record) {
 	l.Emergency(m)
 	l.Alert(m)
 	l.Critical(m)

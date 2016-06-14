@@ -15,9 +15,10 @@ func NewTraceProcessor(level level.LogLevel) *TraceProcessor {
 }
 
 func (t *TraceProcessor) Process(record *messages.Record) {
-	if record.GetLevel() >= t.level {
-		context := record.GetContext()
-		context["file"] = path.Base(record.GetTrace().FileName)
-		context["line"] = record.GetTrace().Line
+	if record.Level >= t.level {
+		context := record.Extra
+		context["file"] = path.Base(record.Trace.FileName)
+		context["func"] = record.Trace.FuncNameShort()
+ 		context["line"] = record.Trace.Line
 	}
 }

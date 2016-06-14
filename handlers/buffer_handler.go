@@ -31,7 +31,7 @@ func (b BufferHandler) Support(level level.LogLevel) bool {
 }
 
 // Write records to buffer
-func (h *BufferHandler) Write(name string, level level.LogLevel, message messages.MessageInterface) {
+func (h *BufferHandler) Write(name string, level level.LogLevel, message *messages.Record) {
 	h.GetFormatter().Execute(name, h.Buffer, h.CreateDataMap(message, name, level))
 }
 
