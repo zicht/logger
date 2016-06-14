@@ -1,9 +1,9 @@
 package processors
 
 import (
+	"path"
 	"github.com/pbergman/logger/level"
 	"github.com/pbergman/logger/messages"
-	"path"
 )
 
 type TraceProcessor struct {
@@ -18,7 +18,6 @@ func (t *TraceProcessor) Process(record *messages.Record) {
 	if record.Level >= t.level {
 		context := record.Extra
 		context["file"] = path.Base(record.Trace.FileName)
-		context["func"] = record.Trace.FuncNameShort()
  		context["line"] = record.Trace.Line
 	}
 }

@@ -17,13 +17,10 @@ func (t *Trace) FuncNameShort() string {
 }
 
 func NewTrace(depth int) *Trace {
-
 	pc, file, line, _ := runtime.Caller(depth)
-
 	return &Trace{
 		Line:       line,
 		FileName:   file,
 		FuncName:   runtime.FuncForPC(pc).Name(),
 	}
-
 }

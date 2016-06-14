@@ -13,10 +13,11 @@ import (
 	"github.com/pbergman/logger/debug"
 )
 
-const (
-	STATE_RUNNING = 1 << iota
-	STATE_PAUSED
-)
+type TraceableLoggerInterface interface {
+	SetTrace(b bool)
+	GetTraceDepth() int
+	SetTraceDepth(v int)
+}
 
 type LoggerInterface interface {
 	Emergency(message interface{})
@@ -35,63 +36,23 @@ type LoggerInterface interface {
 	CheckWarning(err error)
 }
 
-
 type Logger struct {
 	name       string
 	handlers   []handlers.HandlerInterface
 	processors []func(record *messages.Record)
 	mutex      sync.Mutex
 	status     int
-	queue      *messages.Queue
-	Trace      bool
-	TraceDepth int
+	trace      bool
+	traceDepth int
 }
 
 func NewLogger(name string, handlers ...handlers.HandlerInterface) *Logger {
 	return &Logger{
 		name:       name,
 		handlers:   handlers,
-		status:     STATE_RUNNING,
-		Trace:      true,
-		TraceDepth: 3,
+		trace:      true,
+		traceDepth: 3,
 	}
-}
-
-func (l *Logger) dispatch(record *messages.Record) {
-	for _, processor := range l.processors {
-		processor(record)
-	}
-
-	for _, handler := range l.handlers {
-		if handler.Support(record.Level) {
-			handler.Write(l.name, record.Level, record)
-		}
-	}
-}
-
-func (l *Logger) GetState() int {
-	return l.status
-}
-
-// Pause will puase the output and capture the log records
-// in a queue limited to the given buffer size, when resumed
-// the records will be dispatched
-func (l *Logger) Pause(bufferSize int) {
-	l.mutex.Lock()
-	l.queue = messages.NewQueue(bufferSize)
-	l.status = STATE_PAUSED
-	l.mutex.Unlock()
-}
-
-func (l *Logger) Resume() {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
-
-	for l.queue.Valid() {
-		l.dispatch(l.queue.Pop())
-	}
-	l.queue = nil
-	l.status = STATE_RUNNING
 }
 
 // Main function that will call the handlers and processors
@@ -117,18 +78,26 @@ func (l *Logger) log(level level.LogLevel, m interface{}) {
 		message.Extra   = make(map[string]interface{}, 0)
 	}
 
-	message.Time  = time.Now()
-	message.Level = level
-
-	if l.Trace {
-		message.Trace = debug.NewTrace(l.TraceDepth)
+	if message.Time.IsZero() {
+		message.Time = time.Now()
 	}
 
-	switch l.status {
-	case STATE_RUNNING:
-		l.dispatch(message)
-	case STATE_PAUSED:
-		l.queue.Push(message)
+	if message.Level == 0 {
+		message.Level = level
+	}
+
+	if l.trace {
+		message.Trace = debug.NewTrace(l.traceDepth)
+	}
+
+	for _, processor := range l.processors {
+		processor(message)
+	}
+
+	for _, handler := range l.handlers {
+		if handler.Support(message.Level) {
+			handler.Write(l.name, level, message)
+		}
 	}
 }
 
@@ -210,4 +179,16 @@ func (l *Logger) Info(message interface{}) {
 // Debug will dispatch a log event of severity Debug
 func (l *Logger) Debug(message interface{}) {
 	l.log(level.DEBUG, message)
+}
+
+func (l *Logger) SetTrace(b bool) {
+	l.trace = b
+}
+
+func (l *Logger) GetTraceDepth() int {
+	return l.traceDepth
+}
+
+func (l *Logger) SetTraceDepth(v int) {
+	l.traceDepth = v
 }

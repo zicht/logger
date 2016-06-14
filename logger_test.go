@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"fmt"
 	"github.com/pbergman/logger/handlers"
 	"github.com/pbergman/logger/level"
 	"github.com/pbergman/logger/messages"
@@ -56,27 +55,55 @@ func ExampleNewLogger() {
 	//foo.WARNING: INFO
 	//foo.NOTICE: INFO
 	//foo.INFO: INFO
+	//foo.DEBUG: INFO
 	//foo.EMERGENCY: NOTICE
 	//foo.ALERT: NOTICE
 	//foo.CRITICAL: NOTICE
 	//foo.ERROR: NOTICE
 	//foo.WARNING: NOTICE
 	//foo.NOTICE: NOTICE
+	//foo.INFO: NOTICE
+	//foo.DEBUG: NOTICE
 	//foo.EMERGENCY: WARNING
 	//foo.ALERT: WARNING
 	//foo.CRITICAL: WARNING
 	//foo.ERROR: WARNING
 	//foo.WARNING: WARNING
+	//foo.NOTICE: WARNING
+	//foo.INFO: WARNING
+	//foo.DEBUG: WARNING
 	//foo.EMERGENCY: ERROR
 	//foo.ALERT: ERROR
 	//foo.CRITICAL: ERROR
 	//foo.ERROR: ERROR
+	//foo.WARNING: ERROR
+	//foo.NOTICE: ERROR
+	//foo.INFO: ERROR
+	//foo.DEBUG: ERROR
 	//foo.EMERGENCY: CRITICAL
 	//foo.ALERT: CRITICAL
 	//foo.CRITICAL: CRITICAL
+	//foo.ERROR: CRITICAL
+	//foo.WARNING: CRITICAL
+	//foo.NOTICE: CRITICAL
+	//foo.INFO: CRITICAL
+	//foo.DEBUG: CRITICAL
 	//foo.EMERGENCY: ALERT
 	//foo.ALERT: ALERT
+	//foo.CRITICAL: ALERT
+	//foo.ERROR: ALERT
+	//foo.WARNING: ALERT
+	//foo.NOTICE: ALERT
+	//foo.INFO: ALERT
+	//foo.DEBUG: ALERT
 	//foo.EMERGENCY: EMERGENCY
+	//foo.ALERT: EMERGENCY
+	//foo.CRITICAL: EMERGENCY
+	//foo.ERROR: EMERGENCY
+	//foo.WARNING: EMERGENCY
+	//foo.NOTICE: EMERGENCY
+	//foo.INFO: EMERGENCY
+	//foo.DEBUG: EMERGENCY
 }
 
 func ExampleAddProcessor() {
@@ -90,7 +117,7 @@ func ExampleAddProcessor() {
 	logger.Info("foo")
 	// Output:
 	//test.DEBUG: foo {}
-	//test.INFO: foo {"file":"logger_test.go","line":90}
+	//test.INFO: foo {"file":"logger_test.go","line":117}
 }
 
 //Example Basic illustration of using logger
@@ -103,39 +130,6 @@ func Example() {
 	)
 	log.Debug("this would only be displayed in file")
 	log.Warning("this would be displayed in file and on stderr")
-}
-
-func ExamplePause() {
-	handler := handlers.NewWriterHandler(os.Stdout, level.DEBUG)
-	// set custom line because its hard to test time in output :)
-	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }}\n")
-	logger := NewLogger("test", handler)
-	logger.Pause(5)
-	logger.Debug("foo")
-	logger.Debug("foo")
-	logger.Debug("foo")
-	logger.Debug("foo")
-	logger.Debug("foo")
-	logger.Debug("foo")
-	logger.Debug("foo")
-	logger.Debug("foo")
-	logger.Debug("foo")
-	logger.Debug("foo")
-	fmt.Println("some text")
-	logger.Resume()
-	logger.Debug("bar")
-	logger.Debug("bar")
-	logger.Debug("bar")
-	// Output:
-	//some text
-	//test.DEBUG: foo
-	//test.DEBUG: foo
-	//test.DEBUG: foo
-	//test.DEBUG: foo
-	//test.DEBUG: foo
-	//test.DEBUG: bar
-	//test.DEBUG: bar
-	//test.DEBUG: bar
 }
 
 func ExampleMappedWriters() {
@@ -165,7 +159,7 @@ func BenchmarkTrace(b *testing.B) {
 func BenchmarkNoTrace(b *testing.B) {
 	b.StartTimer()
 	logger := NewLogger("test", handlers.NewFileHandler("/dev/null", level.DEBUG))
-	logger.Trace = false
+	logger.trace = false
 	for i := 0; i < b.N; i++ {
 		logger.Debug("hello")
 	}
