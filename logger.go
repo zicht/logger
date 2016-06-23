@@ -86,7 +86,7 @@ func (l *Logger) log(level level.LogLevel, m interface{}) {
 		message.Level = level
 	}
 
-	if l.trace {
+	if l.trace && message.Trace == nil {
 		message.Trace = debug.NewTrace(l.traceDepth)
 	}
 
