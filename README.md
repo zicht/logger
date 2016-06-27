@@ -3,26 +3,6 @@
 This was my first project in go, to see how it all works and decided to make this because a was missing a logger that
 could dispatch multiple handlers and processors (like monolog for php).
 
-This package has bin evolved from the first releases, and you can now pause the dispatching to ask for user input or
-print something else to stdout.
-
-so for example:
-
-```
-	Logger = logger.NewLogger("some_name")
-	Logger.Pause(10) // Will buffer last 10 messages
-	// so something with arguments and use logger
-	// do some Logger.Debug calls...
-	if verbose {
-		Logger.AddHandler(handlers.NewWriterHandler(os.Stdout, level.DEBUG))
-	} else {
-		Logger.AddHandler(handlers.NewWriterHandler(os.Stdout, level.DEBUG))
-	}
-	Logger.ResumeOutput() // Will print the queue based on log level
-```
-
-You can register message processors tp add something to the message context, this could be done by register a closure
-or using a predefined one.
 
 If you want to add the file name and line number of error messages you could use the TraceProcessor :
 

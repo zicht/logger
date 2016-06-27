@@ -13,13 +13,8 @@ import (
 	"github.com/pbergman/logger/debug"
 )
 
-type TraceableLoggerInterface interface {
-	SetTrace(b bool)
-	GetTraceDepth() int
-	SetTraceDepth(v int)
-}
-
 type LoggerInterface interface {
+	// Write methods
 	Emergency(message interface{})
 	Alert(message interface{})
 	Critical(message interface{})
@@ -28,10 +23,13 @@ type LoggerInterface interface {
 	Notice(message interface{})
 	Info(message interface{})
 	Debug(message interface{})
+	// Processor methods
 	AddProcessor(processor func(record *messages.Record))
 	GetProcessors() []func(record *messages.Record)
+	// Handler methods
 	AddHandler(handler handlers.HandlerInterface)
 	GetHandlers() []handlers.HandlerInterface
+	// Helper methods
 	CheckError(err error)
 	CheckWarning(err error)
 }
@@ -42,16 +40,14 @@ type Logger struct {
 	processors []func(record *messages.Record)
 	mutex      sync.Mutex
 	status     int
-	trace      bool
-	traceDepth int
+	Trace      bool
 }
 
 func NewLogger(name string, handlers ...handlers.HandlerInterface) *Logger {
 	return &Logger{
 		name:       name,
 		handlers:   handlers,
-		trace:      true,
-		traceDepth: 3,
+		Trace:      true,
 	}
 }
 
@@ -86,8 +82,8 @@ func (l *Logger) log(level level.LogLevel, m interface{}) {
 		message.Level = level
 	}
 
-	if l.trace && message.Trace == nil {
-		message.Trace = debug.NewTrace(l.traceDepth)
+	if l.Trace && message.Trace == nil {
+		message.Trace = debug.NewTrace(3)
 	}
 
 	for _, processor := range l.processors {
@@ -179,16 +175,4 @@ func (l *Logger) Info(message interface{}) {
 // Debug will dispatch a log event of severity Debug
 func (l *Logger) Debug(message interface{}) {
 	l.log(level.DEBUG, message)
-}
-
-func (l *Logger) SetTrace(b bool) {
-	l.trace = b
-}
-
-func (l *Logger) GetTraceDepth() int {
-	return l.traceDepth
-}
-
-func (l *Logger) SetTraceDepth(v int) {
-	l.traceDepth = v
 }
