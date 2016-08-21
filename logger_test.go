@@ -1,178 +1,245 @@
 package logger
 
 import (
-	"github.com/pbergman/logger/handlers"
-	"github.com/pbergman/logger/level"
-	"github.com/pbergman/logger/messages"
-	"github.com/pbergman/logger/processors"
 	"io"
+	"time"
+	"fmt"
 	"os"
+	"errors"
+	"runtime"
 	"testing"
 )
 
-func ExampleNewLogger() {
-	handler := handlers.NewWriterHandler(os.Stdout, level.DEBUG)
-	// set custom line because its hard to test time in output :)
-	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }}\n")
-	message := messages.NewMessage("DEBUG")
-	log := NewLogger("foo")
-	log.AddHandler(handler)
-	logAll(log, message)
-	handler.Level = level.INFO
-	message = messages.NewMessage("INFO")
-	logAll(log, message)
-	handler.Level = level.NOTICE
-	message = messages.NewMessage("NOTICE")
-	logAll(log, message)
-	handler.Level = level.WARNING
-	message = messages.NewMessage("WARNING")
-	logAll(log, message)
-	handler.Level = level.ERROR
-	message = messages.NewMessage("ERROR")
-	logAll(log, message)
-	handler.Level = level.CRITICAL
-	message = messages.NewMessage("CRITICAL")
-	logAll(log, message)
-	handler.Level = level.ALERT
-	message = messages.NewMessage("ALERT")
-	logAll(log, message)
-	handler.Level = level.EMERGENCY
-	message = messages.NewMessage("EMERGENCY")
-	logAll(log, message)
-	// Output:
-	//foo.EMERGENCY: DEBUG
-	//foo.ALERT: DEBUG
-	//foo.CRITICAL: DEBUG
-	//foo.ERROR: DEBUG
-	//foo.WARNING: DEBUG
-	//foo.NOTICE: DEBUG
-	//foo.INFO: DEBUG
-	//foo.DEBUG: DEBUG
-	//foo.EMERGENCY: INFO
-	//foo.ALERT: INFO
-	//foo.CRITICAL: INFO
-	//foo.ERROR: INFO
-	//foo.WARNING: INFO
-	//foo.NOTICE: INFO
-	//foo.INFO: INFO
-	//foo.DEBUG: INFO
-	//foo.EMERGENCY: NOTICE
-	//foo.ALERT: NOTICE
-	//foo.CRITICAL: NOTICE
-	//foo.ERROR: NOTICE
-	//foo.WARNING: NOTICE
-	//foo.NOTICE: NOTICE
-	//foo.INFO: NOTICE
-	//foo.DEBUG: NOTICE
-	//foo.EMERGENCY: WARNING
-	//foo.ALERT: WARNING
-	//foo.CRITICAL: WARNING
-	//foo.ERROR: WARNING
-	//foo.WARNING: WARNING
-	//foo.NOTICE: WARNING
-	//foo.INFO: WARNING
-	//foo.DEBUG: WARNING
-	//foo.EMERGENCY: ERROR
-	//foo.ALERT: ERROR
-	//foo.CRITICAL: ERROR
-	//foo.ERROR: ERROR
-	//foo.WARNING: ERROR
-	//foo.NOTICE: ERROR
-	//foo.INFO: ERROR
-	//foo.DEBUG: ERROR
-	//foo.EMERGENCY: CRITICAL
-	//foo.ALERT: CRITICAL
-	//foo.CRITICAL: CRITICAL
-	//foo.ERROR: CRITICAL
-	//foo.WARNING: CRITICAL
-	//foo.NOTICE: CRITICAL
-	//foo.INFO: CRITICAL
-	//foo.DEBUG: CRITICAL
-	//foo.EMERGENCY: ALERT
-	//foo.ALERT: ALERT
-	//foo.CRITICAL: ALERT
-	//foo.ERROR: ALERT
-	//foo.WARNING: ALERT
-	//foo.NOTICE: ALERT
-	//foo.INFO: ALERT
-	//foo.DEBUG: ALERT
-	//foo.EMERGENCY: EMERGENCY
-	//foo.ALERT: EMERGENCY
-	//foo.CRITICAL: EMERGENCY
-	//foo.ERROR: EMERGENCY
-	//foo.WARNING: EMERGENCY
-	//foo.NOTICE: EMERGENCY
-	//foo.INFO: EMERGENCY
-	//foo.DEBUG: EMERGENCY
-}
+var test_time time.Time = time.Date(2016, 1, 2, 10, 20, 30, 0, time.Local)
 
-func ExampleAddProcessor() {
-	handler := handlers.NewWriterHandler(os.Stdout, level.DEBUG)
-	// set custom line because its hard to test time in output :)
-	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }} {{ json false .extra }}\n")
-	trace := processors.NewTraceProcessor(level.INFO)
-	logger := NewLogger("test", handler)
-	logger.AddProcessor(trace.Process)
-	logger.Debug("foo")
-	logger.Info("foo")
-	// Output:
-	//test.DEBUG: foo {}
-	//test.INFO: foo {"file":"logger_test.go","line":117}
-}
-
-//Example Basic illustration of using logger
-func Example() {
-	// A logger that will display all levels to out.txt and from level WARNING or higher to stderr
-	log := NewLogger(
-		"test",
-		handlers.NewWriterHandler(os.Stdout, level.WARNING),
-		handlers.NewFileHandler("out.txt", level.DEBUG),
-	)
-	log.Debug("this would only be displayed in file")
-	log.Warning("this would be displayed in file and on stderr")
-}
-
-func ExampleMappedWriters() {
-	handler := handlers.NewMappedWriterHandler(map[level.LogLevel]io.Writer{level.INFO: os.Stdout, level.ERROR: os.Stderr})
-	// set custom line because its hard to test time in output :)
-	handler.GetFormatter().SetFormatLine("{{ .name }}.{{ .level }}: {{ .message }}\n")
-	message := messages.NewMessage("MAPPED MESSAGE")
-	logger := NewLogger("test", handler)
-	logAll(logger, message)
-	//foo.DEBUG: MAPPED MESSAGE
-	//foo.INFO: MAPPED MESSAGE
-	//foo.EMERGENCY: MAPPED MESSAGE
-	//foo.ALERT: MAPPED MESSAGE
-	//foo.CRITICAL: MAPPED MESSAGE
-	//foo.ERROR: MAPPED MESSAGE
-}
-
-func BenchmarkTrace(b *testing.B) {
-	b.StartTimer()
-	logger := NewLogger("test", handlers.NewFileHandler("/dev/null", level.DEBUG))
-	for i := 0; i < b.N; i++ {
-		logger.Debug("hello")
+func getRecord(m string, n ChannelName) Record {
+	return Record{
+		Time:    test_time,
+		Channel: n,
+		Message: m,
 	}
-	b.StopTimer()
 }
 
-func BenchmarkNoTrace(b *testing.B) {
-	b.StartTimer()
-	logger := NewLogger("test", handlers.NewFileHandler("/dev/null", level.DEBUG))
-	logger.trace = false
-	for i := 0; i < b.N; i++ {
-		logger.Debug("hello")
+func ExampleLogger_processor() {
+	logger := NewLogger("main", defaultHandler("main_handler", DEBUG, os.Stdout))
+	logger.AddProcessor(func(r *Record){
+		//pc, file, line, _ := runtime.Caller(3)
+		//r.Context = map[string]interface{}{
+		//	"file_name":    path.Base(file),
+		//	"func_name":    runtime.FuncForPC(pc).Name(),
+		//	"line_nummer":  line,
+		//}
+
+		pc, _, _, _ := runtime.Caller(3)
+		r.Context = map[string]interface{}{
+			"func_name":    runtime.FuncForPC(pc).Name(),
+		}
+	})
+	logger.Debug(struct {name, message string} {"Exmaple", "Trace processor example"})
+	// Output:
+	// {main {Exmaple Trace processor example} map[func_name:github.com/pbergman/logger.ExampleLogger_processor] 2016-01-02 10:20:30 +0100 CET DEBUG}
+}
+
+func ExampleLogger_types() {
+	logger := NewLogger("main", defaultHandler("main_handler", DEBUG, os.Stdout))
+	types := []interface{}{
+		"Simple string message",
+		errors.New("Simple error message"),
+		&Record{
+			Time:    test_time,
+			Channel: ChannelName("main"),
+			Message: "Simple record reference message",
+		},
+		struct {name, message string} {"foo", "Struct message"},
 	}
-	b.StopTimer()
+
+	for _, t := range types {
+		logger.Debug(t)
+	}
+
+	// Output:
+	// {main Simple string message <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
+	// {main Simple error message <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
+	// {main Simple record reference message <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
+	// {main {foo Struct message} <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
+
+
 }
 
-func logAll(l LoggerInterface, m *messages.Record) {
-	l.Emergency(m)
-	l.Alert(m)
-	l.Critical(m)
-	l.Error(m)
-	l.Warning(m)
-	l.Notice(m)
-	l.Info(m)
-	l.Debug(m)
+func ExampleLogger_levels() {
+
+	handler := defaultHandler("main_handler", DEBUG, os.Stdout)
+	logger := NewLogger("main", handler)
+	levels := [9]int{100, 200, 250, 300, 400, 500, 550, 600, 199}
+
+	for _, l := range levels {
+		handler.level = LogLevel(l)
+		logAll(logger, getRecord(fmt.Sprintf("Exmaple level %s", LogLevel(l)), ChannelName("main")))
+	}
+
+	// Output:
+	// {main Exmaple level DEBUG <nil> 2016-01-02 10:20:30 +0100 CET EMERGENCY}
+	// {main Exmaple level DEBUG <nil> 2016-01-02 10:20:30 +0100 CET ALERT}
+	// {main Exmaple level DEBUG <nil> 2016-01-02 10:20:30 +0100 CET CRITICAL}
+	// {main Exmaple level DEBUG <nil> 2016-01-02 10:20:30 +0100 CET ERROR}
+	// {main Exmaple level DEBUG <nil> 2016-01-02 10:20:30 +0100 CET WARNING}
+	// {main Exmaple level DEBUG <nil> 2016-01-02 10:20:30 +0100 CET NOTICE}
+	// {main Exmaple level DEBUG <nil> 2016-01-02 10:20:30 +0100 CET INFO}
+	// {main Exmaple level DEBUG <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
+	// {main Exmaple level INFO <nil> 2016-01-02 10:20:30 +0100 CET EMERGENCY}
+	// {main Exmaple level INFO <nil> 2016-01-02 10:20:30 +0100 CET ALERT}
+	// {main Exmaple level INFO <nil> 2016-01-02 10:20:30 +0100 CET CRITICAL}
+	// {main Exmaple level INFO <nil> 2016-01-02 10:20:30 +0100 CET ERROR}
+	// {main Exmaple level INFO <nil> 2016-01-02 10:20:30 +0100 CET WARNING}
+	// {main Exmaple level INFO <nil> 2016-01-02 10:20:30 +0100 CET NOTICE}
+	// {main Exmaple level INFO <nil> 2016-01-02 10:20:30 +0100 CET INFO}
+	// {main Exmaple level NOTICE <nil> 2016-01-02 10:20:30 +0100 CET EMERGENCY}
+	// {main Exmaple level NOTICE <nil> 2016-01-02 10:20:30 +0100 CET ALERT}
+	// {main Exmaple level NOTICE <nil> 2016-01-02 10:20:30 +0100 CET CRITICAL}
+	// {main Exmaple level NOTICE <nil> 2016-01-02 10:20:30 +0100 CET ERROR}
+	// {main Exmaple level NOTICE <nil> 2016-01-02 10:20:30 +0100 CET WARNING}
+	// {main Exmaple level NOTICE <nil> 2016-01-02 10:20:30 +0100 CET NOTICE}
+	// {main Exmaple level WARNING <nil> 2016-01-02 10:20:30 +0100 CET EMERGENCY}
+	// {main Exmaple level WARNING <nil> 2016-01-02 10:20:30 +0100 CET ALERT}
+	// {main Exmaple level WARNING <nil> 2016-01-02 10:20:30 +0100 CET CRITICAL}
+	// {main Exmaple level WARNING <nil> 2016-01-02 10:20:30 +0100 CET ERROR}
+	// {main Exmaple level WARNING <nil> 2016-01-02 10:20:30 +0100 CET WARNING}
+	// {main Exmaple level ERROR <nil> 2016-01-02 10:20:30 +0100 CET EMERGENCY}
+	// {main Exmaple level ERROR <nil> 2016-01-02 10:20:30 +0100 CET ALERT}
+	// {main Exmaple level ERROR <nil> 2016-01-02 10:20:30 +0100 CET CRITICAL}
+	// {main Exmaple level ERROR <nil> 2016-01-02 10:20:30 +0100 CET ERROR}
+	// {main Exmaple level CRITICAL <nil> 2016-01-02 10:20:30 +0100 CET EMERGENCY}
+	// {main Exmaple level CRITICAL <nil> 2016-01-02 10:20:30 +0100 CET ALERT}
+	// {main Exmaple level CRITICAL <nil> 2016-01-02 10:20:30 +0100 CET CRITICAL}
+	// {main Exmaple level ALERT <nil> 2016-01-02 10:20:30 +0100 CET EMERGENCY}
+	// {main Exmaple level ALERT <nil> 2016-01-02 10:20:30 +0100 CET ALERT}
+	// {main Exmaple level EMERGENCY <nil> 2016-01-02 10:20:30 +0100 CET EMERGENCY}
+	// {main Exmaple level UNKNOWN <nil> 2016-01-02 10:20:30 +0100 CET EMERGENCY}
+	// {main Exmaple level UNKNOWN <nil> 2016-01-02 10:20:30 +0100 CET ALERT}
+	// {main Exmaple level UNKNOWN <nil> 2016-01-02 10:20:30 +0100 CET CRITICAL}
+	// {main Exmaple level UNKNOWN <nil> 2016-01-02 10:20:30 +0100 CET ERROR}
+	// {main Exmaple level UNKNOWN <nil> 2016-01-02 10:20:30 +0100 CET WARNING}
+	// {main Exmaple level UNKNOWN <nil> 2016-01-02 10:20:30 +0100 CET NOTICE}
+	// {main Exmaple level UNKNOWN <nil> 2016-01-02 10:20:30 +0100 CET INFO}
+
+
+}
+
+func TestLogger_channel(t *testing.T) {
+	logger := NewLogger("main")
+	logger.Register("foo")
+
+	// check lazy loading
+	if (*logger.channels)["foo"] != nil {
+		t.Errorf("Expecting to be nil is %T", (*logger.channels)["foo"])
+	}
+
+	logger.Get("foo")
+
+	// check lazy loading
+	if (*logger.channels)["foo"] == nil {
+		t.Error("Expecting to be a Chanel instance not nil")
+	}
+
+
+	ret := func() (str string) {
+
+		defer func() {
+			if e := recover(); e != nil {
+				str = e.(string)
+			}
+		}()
+
+		logger.Get("bar")
+
+		return
+	}()
+
+	if ret != "Logger: Requesting a non existing channel (bar)" {
+		t.Errorf("Expecting error message: 'Logger: Requesting a non existing channel (bar).' Got: %s", ret)
+	}
+
+}
+
+func TestLogger_processor(t *testing.T) {
+	p := func(record *Record){}
+	logger := NewLogger("main")
+	logger.AddProcessor(p)
+	if len(*logger.GetProcessors()) != 1 {
+		t.Errorf("Expecting to have 1 processor got: %d", len(*logger.GetHandlers()))
+	}
+}
+
+func TestLogger_handlers(t *testing.T) {
+	logger := NewLogger("main")
+	logger.AddHandler(defaultHandler("main_handler1", DEBUG, os.Stdout))
+	logger.AddHandler(defaultHandler("main_handler2", DEBUG, os.Stdout))
+
+	if len(*logger.GetHandlers()) != 2 {
+		t.Errorf("Expecting to have 2 handers got: %d", len(*logger.GetHandlers()))
+	}
+
+
+	ret := func() (str string) {
+
+		defer func() {
+			if e := recover(); e != nil {
+				str = e.(string)
+			}
+		}()
+
+		logger.AddHandler(defaultHandler("main_handler2", DEBUG, os.Stdout))
+
+		return
+	}()
+
+	if ret != "Logger: A handler with name main_handler2 is allready registered." {
+		t.Errorf("Expecting error message: 'Logger: A handler with name main_handler2 is allready registered.' Got: %s", ret)
+	}
+}
+
+func logAll(l LoggerInterface, r Record) {
+	l.Emergency(r)
+	l.Alert(r)
+	l.Critical(r)
+	l.Error(r)
+	l.Warning(r)
+	l.Notice(r)
+	l.Info(r)
+	l.Debug(r)
+}
+
+type formatter struct { f func(r Record, w io.Writer) error }
+func (f formatter) 	Format(r Record, w io.Writer) (error) { return f.f(r,w) }
+
+type handler struct {
+	name        string
+	level       LogLevel
+	formatter   FormatterInterface
+	buff        io.Writer
+}
+func (h handler) GetName() string { return h.name }
+func (h handler) GetLevel() LogLevel { return h.level }
+func (h handler) GetFormatter() FormatterInterface { return h.formatter }
+func (h handler) SetFormatter(formatter FormatterInterface) { }
+func (h handler) GetChannels() *ChannelNames { return nil }
+func (h handler) HasChannels() bool { return false }
+func (h handler) SetChannels(c ChannelNames) {}
+func (h handler) Support(record Record) bool { return h.level <= record.Level }
+func (h handler) Write(p []byte) (n int, err error) { return  h.buff.Write(p) }
+func (h handler) Close() error { return nil }
+
+func defaultHandler(name string, level LogLevel, writer io.Writer) *handler {
+	return &handler{
+		name,
+		level,
+		&formatter{
+			func(r Record, w io.Writer)error {
+				r.Time = test_time;
+				_, e := fmt.Fprintln(w,r);
+				return e
+			},
+		},
+		writer,
+	}
 }
