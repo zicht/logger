@@ -11,18 +11,16 @@ type WriterHandler struct {
 	channels    *logger.ChannelNames
 	formatter   logger.FormatterInterface
 	level       logger.LogLevel
+	bubble 		bool
 	writer      io.Writer
 }
 
 func NewWriterHandler(name string, writer io.Writer, level logger.LogLevel, channels ...logger.ChannelName) *WriterHandler {
-
 	cn := new(logger.ChannelNames)
-
 	for _, c := range channels {
 		cn.AddChannel(c)
 	}
-
-	return &WriterHandler{name: name, channels: cn, level: level, writer: writer}
+	return &WriterHandler{name: name, channels: cn, level: level, bubble: true, writer: writer}
 }
 
 func (w *WriterHandler) GetName() string {
@@ -45,6 +43,14 @@ func (w *WriterHandler) GetChannels() *logger.ChannelNames {
 	return w.channels
 }
 
+func (w *WriterHandler) Handle(record logger.Record) bool {
+
+	if err := w.GetFormatter().Format(record, w.writer); err != nil {
+		panic("Handler: Failed to format message, " + err.Error())
+	}
+
+	return w.bubble == false
+}
 
 func (w *WriterHandler) GetLevel() logger.LogLevel {
 	return w.level
@@ -63,27 +69,13 @@ func (w *WriterHandler) SetFormatter(f logger.FormatterInterface) {
 }
 
 func (w *WriterHandler) Support(record logger.Record) bool {
-	// @todo move to logger
-	if w.HasChannels() {
-		if index := w.channels.FindChannel(record.Channel.GetName()); index >= 0 {
-			if (*w.channels)[index].IsExcluded() {
-				return false
-			}
-		} else {
-			return false
-		}
-	}
 	return w.level <= record.Level
 }
 
-func (w *WriterHandler) Write(p []byte) (n int, err error) {
-	return w.writer.Write(p)
+func (w *WriterHandler) SetBubble(bubble bool) {
+	w.bubble = bubble
 }
 
-func (w *WriterHandler) Close() error {
-	if closer, ok := w.writer.(io.Closer); ok {
-		return closer.Close()
-	} else {
-		return nil
-	}
+func (w *WriterHandler) GetBubble() bool {
+	return w.bubble
 }

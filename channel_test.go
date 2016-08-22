@@ -8,21 +8,32 @@ import (
 
 func TestChannel(t *testing.T) {
 	logger := NewLogger("main")
-	logger.Register("foo")
+	var err error
+	if err = logger.Register("foo"); err != nil {
+		t.Error("Expecting error to be nil got: %s", err.Error())
+	}
+	if err = logger.Register("foo"); err == nil {
+		t.Error("Expecting error not to be nil.")
+	}
 }
+
+//func ExampleChannel_exclusion() {
+//	handler := defaultHandler("main_handler", DEBUG, os.Stdout)
+//	handler
+//}
 
 func ExampleChannel() {
 	handler := defaultHandler("main_handler", DEBUG, os.Stdout)
 	logger := NewLogger("main", handler)
 	logger.Register("foo")
-	channel := logger.Get("foo")
+	channel, _ := logger.Get("foo")
 
 
 	levels := [9]int{100, 200, 250, 300, 400, 500, 550, 600, 199}
 
 	for _, l := range levels {
 		handler.level = LogLevel(l)
-		logAll(channel, getRecord(fmt.Sprintf("Exmaple level %s", LogLevel(l)), ChannelName("main")))
+		logAll(channel, getRecord(fmt.Sprintf("Exmaple level %s", LogLevel(l)), ""))
 	}
 
 	// Output:

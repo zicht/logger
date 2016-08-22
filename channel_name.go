@@ -3,14 +3,20 @@ package logger
 type ChannelName string
 
 func (c ChannelName) String() string {
-	if c.IsExcluded() {
+	switch {
+	case c.IsEmpty():
+		return ""
+	case c.IsExcluded():
 		return c.GetName() + " (excluded)"
-	} else {
+	default:
 		return c.GetName()
 	}
 }
 
 func (c ChannelName) GetName() string {
+	if c.IsEmpty() {
+		return ""
+	}
 	if c[0] == '!' {
 		return string(c[1:])
 	} else {
@@ -18,6 +24,14 @@ func (c ChannelName) GetName() string {
 	}
 }
 
+func (c ChannelName) IsEmpty() bool {
+	return c == ""
+}
+
 func (c ChannelName) IsExcluded() bool {
-	return  c[0] == byte(33) // starts with !
+	if c.IsEmpty() {
+		return false
+	} else {
+		return  c[0] == byte(33) // starts with !
+	}
 }

@@ -30,7 +30,7 @@ func ExampleLogger_processor() {
 		//	"line_nummer":  line,
 		//}
 
-		pc, _, _, _ := runtime.Caller(3)
+		pc, _, _, _ := runtime.Caller(4)
 		r.Context = map[string]interface{}{
 			"func_name":    runtime.FuncForPC(pc).Name(),
 		}
@@ -142,21 +142,10 @@ func TestLogger_channel(t *testing.T) {
 	}
 
 
-	ret := func() (str string) {
+	_, ret := logger.Get("bar")
 
-		defer func() {
-			if e := recover(); e != nil {
-				str = e.(string)
-			}
-		}()
-
-		logger.Get("bar")
-
-		return
-	}()
-
-	if ret != "Logger: Requesting a non existing channel (bar)" {
-		t.Errorf("Expecting error message: 'Logger: Requesting a non existing channel (bar).' Got: %s", ret)
+	if ret.Error() != "Requesting a non existing channel (bar)" {
+		t.Errorf("Expecting error message: 'Requesting a non existing channel (bar).' Got: %s", ret)
 	}
 
 }
@@ -170,6 +159,40 @@ func TestLogger_processor(t *testing.T) {
 	}
 }
 
+func ExampleLogger_handle() {
+
+	handler1 := defaultHandler("main_handler1", DEBUG, os.Stdout)
+	handler1.channels.AddChannel(ChannelName("foo"))
+	handler1.channels.AddChannel(ChannelName("main"))
+
+	handler2 := defaultHandler("main_handler2", DEBUG, os.Stdout)
+	handler2.channels.AddChannel(ChannelName("bar"))
+	handler2.channels.AddChannel(ChannelName("main"))
+	handler2.bubble = false
+
+	handler3 := defaultHandler("main_handler3", DEBUG, os.Stdout)
+	handler3.channels.AddChannel(ChannelName("foo"))
+	handler3.channels.AddChannel(ChannelName("main"))
+
+	logger := NewLogger("main", handler1, handler2, handler3)
+	logger.Register("foo")
+	logger.Register("bar")
+
+	logger1, _ := logger.Get("foo")
+	logger2, _ := logger.Get("bar")
+
+	logger1.Debug("one")
+	logger2.Debug("two")
+	logger.Debug("hello")
+
+	// Output:
+	// {foo one <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
+	// {foo one <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
+	// {bar two <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
+	// {main hello <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
+	// {main hello <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
+}
+
 func TestLogger_handlers(t *testing.T) {
 	logger := NewLogger("main")
 	logger.AddHandler(defaultHandler("main_handler1", DEBUG, os.Stdout))
@@ -180,21 +203,10 @@ func TestLogger_handlers(t *testing.T) {
 	}
 
 
-	ret := func() (str string) {
+	ret := logger.AddHandler(defaultHandler("main_handler2", DEBUG, os.Stdout))
 
-		defer func() {
-			if e := recover(); e != nil {
-				str = e.(string)
-			}
-		}()
-
-		logger.AddHandler(defaultHandler("main_handler2", DEBUG, os.Stdout))
-
-		return
-	}()
-
-	if ret != "Logger: A handler with name main_handler2 is allready registered." {
-		t.Errorf("Expecting error message: 'Logger: A handler with name main_handler2 is allready registered.' Got: %s", ret)
+	if ret.Error() != "A handler with name main_handler2 is allready registered." {
+		t.Errorf("Expecting error message: 'A handler with name main_handler2 is allready registered.' Got: %s", ret)
 	}
 }
 
@@ -217,17 +229,20 @@ type handler struct {
 	level       LogLevel
 	formatter   FormatterInterface
 	buff        io.Writer
+	handle		func(Record, *handler) bool
+	channels    *ChannelNames
+	bubble		bool
 }
+
 func (h handler) GetName() string { return h.name }
 func (h handler) GetLevel() LogLevel { return h.level }
 func (h handler) GetFormatter() FormatterInterface { return h.formatter }
 func (h handler) SetFormatter(formatter FormatterInterface) { }
-func (h handler) GetChannels() *ChannelNames { return nil }
-func (h handler) HasChannels() bool { return false }
-func (h handler) SetChannels(c ChannelNames) {}
+func (h handler) GetChannels() *ChannelNames { return h.channels }
+func (h handler) HasChannels() bool { return h.channels.Len() > 0 }
+func (h handler) SetChannels(c *ChannelNames) { h.channels = c }
 func (h handler) Support(record Record) bool { return h.level <= record.Level }
-func (h handler) Write(p []byte) (n int, err error) { return  h.buff.Write(p) }
-func (h handler) Close() error { return nil }
+func (h handler) Handle(record Record) bool { return h.handle(record, &h) }
 
 func defaultHandler(name string, level LogLevel, writer io.Writer) *handler {
 	return &handler{
@@ -241,5 +256,11 @@ func defaultHandler(name string, level LogLevel, writer io.Writer) *handler {
 			},
 		},
 		writer,
+		func(r Record, h *handler) bool {
+			h.GetFormatter().Format(r, h.buff)
+			return h.bubble
+		},
+		new(ChannelNames),
+		true,
 	}
 }

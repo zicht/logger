@@ -1,11 +1,10 @@
 #!/bin/bash
-
-cd ../
-# go test -cover ./...
-go test -coverprofile ./coverage/cover.out ./
-go test -coverprofile ./coverage/cover.handlers.out ./handlers
-go test -coverprofile ./coverage/cover.formatters.out ./formatters
-cd -
-go tool cover -html=cover.out -o cover.html
-go tool cover -html=cover.handlers.out -o cover.handlers.html
-go tool cover -html=cover.formatters.out -o cover.formatters.html
+export GO_SRC=${GOPATH}src/
+export PROJECT=github.com/pbergman/logger
+export PROJECT_DIR=${GO_SRC}${PROJECT}
+cd $PROJECT_DIR
+for i in $(find $PROJECT_DIR -type f -name "*_test.go" | xargs -n1 dirname | uniq); do
+    name=${i#${GO_SRC}github.com/pbergman/}
+    go test -coverprofile ./coverage/${name////.}.out ${i#${GO_SRC}}
+    go tool cover -html=./coverage/${name////.}.out -o ./coverage/${name////.}.html
+done

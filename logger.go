@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"errors"
 )
 
 type (
@@ -60,15 +61,16 @@ func (l *Logger) GetProcessors() *Processors {
 }
 
 // AddHandler adds a handler to the stack for outputting the messages
-func (l *Logger) AddHandler(handler HandlerInterface) {
+func (l *Logger) AddHandler(handler HandlerInterface) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
 	if _, o := (*l.handlers)[handler.GetName()]; o {
-		panic("Logger: A handler with name " + handler.GetName() + " is allready registered.")
+		return errors.New("A handler with name " + handler.GetName() + " is allready registered.")
 	}
 
 	(*l.handlers)[handler.GetName()] = handler
+	return nil
 }
 
 func (l *Logger) GetHandlers() *Handlers {
@@ -77,15 +79,18 @@ func (l *Logger) GetHandlers() *Handlers {
 	return l.handlers
 }
 
-func (l *Logger) Register(name string) {
+func (l *Logger) Register(name string) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	if _, o := (*l.channels)[name]; !o {
 		(*l.channels)[name] = nil
+	} else {
+		return errors.New("Channel " + name + " is allready registered.")
 	}
+	return nil
 }
 
-func (l *Logger) Get(name string) *Channel {
+func (l *Logger) Get(name string) (LoggerInterface, error) {
 	l.mutex.RLock()
 	defer l.mutex.RUnlock()
 	if v, o := (*l.channels)[name]; o {
@@ -96,13 +101,31 @@ func (l *Logger) Get(name string) *Channel {
 			}
 			v = (*l.channels)[name]
 		}
-		return v
+		return v, nil
 	} else {
-		panic("Logger: Requesting a non existing channel (" + name + ")")
+		return nil, errors.New("Requesting a non existing channel (" + name + ")")
 	}
 }
 
-func (l *Logger) log(level LogLevel, channel string, message interface{}) {
+func (l *Logger) handle(record Record) {
+
+	for _, processor := range (*l.processors) {
+		processor(&record)
+	}
+
+	for _, handler := range (*l.handlers) {
+		if handler.HasChannels() && false == handler.GetChannels().Support(record.Channel) {
+			continue
+		}
+		if handler.Support(record) {
+			if false == handler.Handle(record) {
+				break
+			}
+		}
+	}
+}
+
+func (l *Logger) log(level LogLevel, channel ChannelName, message interface{}) {
 
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -122,57 +145,40 @@ func (l *Logger) log(level LogLevel, channel string, message interface{}) {
 		record = Record{Message: fmt.Sprint(value)}
 	}
 
-	if record.Time.IsZero() {
-		record.Time = time.Now()
-	}
-
-	if record.Level == 0 {
-		record.Level = level
-	}
-
-	if record.Channel == "" {
-		record.Channel = ChannelName(channel)
-	}
-
-	for _, processor := range (*l.processors) {
-		processor(&record)
-	}
-
-	for _, handler := range (*l.handlers) {
-		if handler.Support(record) {
-			handler.GetFormatter().Format(record, handler)
-		}
-	}
+	record.Time = time.Now()
+	record.Level = level
+	record.Channel = channel
+	l.handle(record)
 }
 
 func (l *Logger) Emergency(message interface{}) {
-	l.log(EMERGENCY, l.name, message)
+	l.log(EMERGENCY, ChannelName(l.name), message)
 }
 
 func (l *Logger) Alert(message interface{}) {
-	l.log(ALERT, l.name, message)
+	l.log(ALERT, ChannelName(l.name), message)
 }
 
 func (l *Logger) Critical(message interface{}) {
-	l.log(CRITICAL, l.name, message)
+	l.log(CRITICAL, ChannelName(l.name), message)
 }
 
 func (l *Logger) Error(message interface{}) {
-	l.log(ERROR, l.name, message)
+	l.log(ERROR, ChannelName(l.name), message)
 }
 
 func (l *Logger) Warning(message interface{}) {
-	l.log(WARNING, l.name, message)
+	l.log(WARNING, ChannelName(l.name), message)
 }
 
 func (l *Logger) Notice(message interface{}) {
-	l.log(NOTICE, l.name, message)
+	l.log(NOTICE, ChannelName(l.name), message)
 }
 
 func (l *Logger) Info(message interface{}) {
-	l.log(INFO, l.name, message)
+	l.log(INFO, ChannelName(l.name), message)
 }
 
 func (l *Logger) Debug(message interface{}) {
-	l.log(DEBUG, l.name, message)
+	l.log(DEBUG, ChannelName(l.name), message)
 }
