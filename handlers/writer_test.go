@@ -45,13 +45,16 @@ func TestWriter_channel(t *testing.T) {
 	record := getRecord("bar", logger.WARNING, logger.ChannelName("main"))
 	handler := NewWriterHandler("foo", buff, logger.INFO)
 
-	handler.GetChannels().AddChannel(logger.ChannelName("!main"))
+	if err := handler.GetChannels().AddChannel(logger.ChannelName("!main")); err != nil {
+		t.Error(err.Error())
+	}
+
 	if true == handler.GetChannels().Support(record.Channel) {
 		t.Errorf("Handler should not support channel %s (handler: %s)", record.Channel.GetName(), (*handler.channels)[handler.channels.FindChannel("main")])
 	}
-	record.Channel = logger.ChannelName("not_exist")
-	if true == handler.GetChannels().Support(record.Channel) {
-		t.Errorf("Handler should not support channel %s", record.Channel.GetName())
+
+	if false == handler.GetChannels().Support(logger.ChannelName("test")) {
+		t.Errorf("Handler should support channel %s (handler: %s)", record.Channel.GetName(), (*handler.channels)[handler.channels.FindChannel("main")])
 	}
 }
 

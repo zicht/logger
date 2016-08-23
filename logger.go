@@ -25,26 +25,27 @@ type (
 		processors *Processors
 		mutex      sync.RWMutex
 	}
-	Handlers        map[string]HandlerInterface
+	Handlers        []HandlerInterface
 	Processors      []func(record *Record)
 	Channels        map[string]*Channel
 )
 
 func NewLogger(name string, handlers ...HandlerInterface) *Logger {
 
-	handler := make(Handlers, 0)
+	handler := new(Handlers)
 
 	for _, h := range handlers {
-		handler[h.GetName()] = h
+		(*handler) = append(*handler, h)
 	}
 
-	channels := make(Channels, 0)
+	channels := make(Channels, 1)
+	channels[name] = nil
 
 	return &Logger{
 		name:       name,
 		channels:   &channels,
 		processors: new(Processors),
-		handlers:   &handler,
+		handlers:   handler,
 	}
 }
 
@@ -65,11 +66,12 @@ func (l *Logger) AddHandler(handler HandlerInterface) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	if _, o := (*l.handlers)[handler.GetName()]; o {
-		return errors.New("A handler with name " + handler.GetName() + " is allready registered.")
+	for i := 0; i < len(*l.handlers); i++ {
+		if (*l.handlers)[i].GetName() == handler.GetName() {
+			return errors.New("A handler with name " + handler.GetName() + " is allready registered.")
+		}
 	}
-
-	(*l.handlers)[handler.GetName()] = handler
+	(*l.handlers) = append(*l.handlers, handler)
 	return nil
 }
 
@@ -90,6 +92,14 @@ func (l *Logger) Register(name string) error {
 	return nil
 }
 
+func (l *Logger) MustGet(name string) LoggerInterface {
+	if c, e := l.Get(name); e != nil {
+		panic(e)
+	} else {
+		return c
+	}
+}
+
 func (l *Logger) Get(name string) (LoggerInterface, error) {
 	l.mutex.RLock()
 	defer l.mutex.RUnlock()
@@ -108,17 +118,15 @@ func (l *Logger) Get(name string) (LoggerInterface, error) {
 }
 
 func (l *Logger) handle(record Record) {
-
-	for _, processor := range (*l.processors) {
-		processor(&record)
+	for i := 0; i < len(*l.processors); i++ {
+		(*l.processors)[i](&record)
 	}
-
-	for _, handler := range (*l.handlers) {
-		if handler.HasChannels() && false == handler.GetChannels().Support(record.Channel) {
+	for i := 0; i < len(*l.handlers); i++ {
+		if (*l.handlers)[i].HasChannels() && false == (*l.handlers)[i].GetChannels().Support(record.Channel) {
 			continue
 		}
-		if handler.Support(record) {
-			if false == handler.Handle(record) {
+		if (*l.handlers)[i].Support(record) {
+			if false == (*l.handlers)[i].Handle(record) {
 				break
 			}
 		}
@@ -152,33 +160,33 @@ func (l *Logger) log(level LogLevel, channel ChannelName, message interface{}) {
 }
 
 func (l *Logger) Emergency(message interface{}) {
-	l.log(EMERGENCY, ChannelName(l.name), message)
+	l.MustGet(l.name).Emergency(message)
 }
 
 func (l *Logger) Alert(message interface{}) {
-	l.log(ALERT, ChannelName(l.name), message)
+	l.MustGet(l.name).Alert(message)
 }
 
 func (l *Logger) Critical(message interface{}) {
-	l.log(CRITICAL, ChannelName(l.name), message)
+	l.MustGet(l.name).Critical(message)
 }
 
 func (l *Logger) Error(message interface{}) {
-	l.log(ERROR, ChannelName(l.name), message)
+	l.MustGet(l.name).Error(message)
 }
 
 func (l *Logger) Warning(message interface{}) {
-	l.log(WARNING, ChannelName(l.name), message)
+	l.MustGet(l.name).Warning(message)
 }
 
 func (l *Logger) Notice(message interface{}) {
-	l.log(NOTICE, ChannelName(l.name), message)
+	l.MustGet(l.name).Notice(message)
 }
 
 func (l *Logger) Info(message interface{}) {
-	l.log(INFO, ChannelName(l.name), message)
+	l.MustGet(l.name).Info(message)
 }
 
 func (l *Logger) Debug(message interface{}) {
-	l.log(DEBUG, ChannelName(l.name), message)
+	l.MustGet(l.name).Debug(message)
 }

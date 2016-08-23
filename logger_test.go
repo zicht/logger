@@ -30,7 +30,7 @@ func ExampleLogger_processor() {
 		//	"line_nummer":  line,
 		//}
 
-		pc, _, _, _ := runtime.Caller(4)
+		pc, _, _, _ := runtime.Caller(5)
 		r.Context = map[string]interface{}{
 			"func_name":    runtime.FuncForPC(pc).Name(),
 		}
@@ -193,6 +193,34 @@ func ExampleLogger_handle() {
 	// {main hello <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
 }
 
+func TestLogger_must(t *testing.T) {
+	logger := NewLogger("main")
+
+	catch := func(name string) (err string) {
+
+		defer func() {
+			if r := recover(); r != nil {
+				err = r.(error).Error()
+			}
+		}()
+
+		logger.MustGet(name)
+
+		return
+	}
+
+
+	if l := catch("main"); l != "" {
+		t.Errorf("Expecting to get empty string got: %s", l)
+	}
+
+	if l := catch("foo"); l != "Requesting a non existing channel (foo)" {
+		t.Errorf("Expecting 'Requesting a non existing channel (foo)' got: '%s'", l)
+	}
+
+}
+
+
 func TestLogger_handlers(t *testing.T) {
 	logger := NewLogger("main")
 	logger.AddHandler(defaultHandler("main_handler1", DEBUG, os.Stdout))
@@ -201,7 +229,6 @@ func TestLogger_handlers(t *testing.T) {
 	if len(*logger.GetHandlers()) != 2 {
 		t.Errorf("Expecting to have 2 handers got: %d", len(*logger.GetHandlers()))
 	}
-
 
 	ret := logger.AddHandler(defaultHandler("main_handler2", DEBUG, os.Stdout))
 
