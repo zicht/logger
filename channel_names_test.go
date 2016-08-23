@@ -77,11 +77,20 @@ func TestChannels_excluded(t *testing.T) {
 
 
 	if err := channels.AddChannel(ChannelName("003")); err == nil {
-		t.Error("Expecting to get error while adding channel 003")
+		t.Error("Expecting to get error while adding channel '003'")
 	} else {
 		if err.Error() != "Unsupported channel '003' should be either 'Include all, except [channel]...' or 'Include only [channel]...'" {
 			t.Errorf("Expecting: 'Unsupported channel '003' should be either 'Include all, except [channel]...' or 'Include only [channel]...' got: %s", err.Error())
 		}
 	}
 
+	(*channels) = append(*channels, ChannelName("003"))
+
+	if err := channels.AddChannel(ChannelName("!004")); err == nil {
+		t.Error("Expecting to get error while adding channel '!004'")
+	} else {
+		if err.Error() != "Unsupported channel '003' should be either 'Include all, except [channel]...' or 'Include only [channel]...'" {
+			t.Errorf("Expecting: 'Unsupported channel '003' should be either 'Include all, except [channel]...' or 'Include only [channel]...' got: %s", err.Error())
+		}
+	}
 }
