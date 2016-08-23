@@ -1,10 +1,10 @@
 package formatters
 
 import (
-	"io"
-	"text/template"
 	"encoding/json"
 	"github.com/pbergman/logger"
+	"io"
+	"text/template"
 )
 
 type lineFormatter struct {

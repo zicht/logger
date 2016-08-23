@@ -1,9 +1,9 @@
 package logger
 
 import (
-	"testing"
-"os"
 	"fmt"
+	"os"
+	"testing"
 )
 
 func TestChannel(t *testing.T) {
@@ -27,7 +27,6 @@ func ExampleChannel() {
 	logger := NewLogger("main", handler)
 	logger.Register("foo")
 	channel, _ := logger.Get("foo")
-
 
 	levels := [9]int{100, 200, 250, 300, 400, 500, 550, 600, 199}
 
@@ -80,6 +79,5 @@ func ExampleChannel() {
 	// {foo Exmaple level UNKNOWN <nil> 2016-01-02 10:20:30 +0100 CET WARNING}
 	// {foo Exmaple level UNKNOWN <nil> 2016-01-02 10:20:30 +0100 CET NOTICE}
 	// {foo Exmaple level UNKNOWN <nil> 2016-01-02 10:20:30 +0100 CET INFO}
-
 
 }

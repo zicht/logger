@@ -14,7 +14,6 @@ const (
 	DEBUG     LogLevel = 100
 )
 
-
 func (l LogLevel) String() string {
 	switch l {
 	case EMERGENCY:

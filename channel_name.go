@@ -32,6 +32,6 @@ func (c ChannelName) IsExcluded() bool {
 	if c.IsEmpty() {
 		return false
 	} else {
-		return  c[0] == byte(33) // starts with !
+		return c[0] == byte(33) // starts with !
 	}
 }

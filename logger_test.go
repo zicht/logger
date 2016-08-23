@@ -1,13 +1,13 @@
 package logger
 
 import (
-	"io"
-	"time"
-	"fmt"
-	"os"
 	"errors"
+	"fmt"
+	"io"
+	"os"
 	"runtime"
 	"testing"
+	"time"
 )
 
 var test_time time.Time = time.Date(2016, 1, 2, 10, 20, 30, 0, time.Local)
@@ -22,7 +22,7 @@ func getRecord(m string, n ChannelName) Record {
 
 func ExampleLogger_processor() {
 	logger := NewLogger("main", defaultHandler("main_handler", DEBUG, os.Stdout))
-	logger.AddProcessor(func(r *Record){
+	logger.AddProcessor(func(r *Record) {
 		//pc, file, line, _ := runtime.Caller(3)
 		//r.Context = map[string]interface{}{
 		//	"file_name":    path.Base(file),
@@ -32,10 +32,10 @@ func ExampleLogger_processor() {
 
 		pc, _, _, _ := runtime.Caller(5)
 		r.Context = map[string]interface{}{
-			"func_name":    runtime.FuncForPC(pc).Name(),
+			"func_name": runtime.FuncForPC(pc).Name(),
 		}
 	})
-	logger.Debug(struct {name, message string} {"Exmaple", "Trace processor example"})
+	logger.Debug(struct{ name, message string }{"Exmaple", "Trace processor example"})
 	// Output:
 	// {main {Exmaple Trace processor example} map[func_name:github.com/pbergman/logger.ExampleLogger_processor] 2016-01-02 10:20:30 +0100 CET DEBUG}
 }
@@ -50,7 +50,7 @@ func ExampleLogger_types() {
 			Channel: ChannelName("main"),
 			Message: "Simple record reference message",
 		},
-		struct {name, message string} {"foo", "Struct message"},
+		struct{ name, message string }{"foo", "Struct message"},
 	}
 
 	for _, t := range types {
@@ -62,7 +62,6 @@ func ExampleLogger_types() {
 	// {main Simple error message <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
 	// {main Simple record reference message <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
 	// {main {foo Struct message} <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
-
 
 }
 
@@ -122,7 +121,6 @@ func ExampleLogger_levels() {
 	// {main Exmaple level UNKNOWN <nil> 2016-01-02 10:20:30 +0100 CET NOTICE}
 	// {main Exmaple level UNKNOWN <nil> 2016-01-02 10:20:30 +0100 CET INFO}
 
-
 }
 
 func TestLogger_channel(t *testing.T) {
@@ -141,7 +139,6 @@ func TestLogger_channel(t *testing.T) {
 		t.Error("Expecting to be a Chanel instance not nil")
 	}
 
-
 	_, ret := logger.Get("bar")
 
 	if ret.Error() != "Requesting a non existing channel (bar)" {
@@ -151,7 +148,7 @@ func TestLogger_channel(t *testing.T) {
 }
 
 func TestLogger_processor(t *testing.T) {
-	p := func(record *Record){}
+	p := func(record *Record) {}
 	logger := NewLogger("main")
 	logger.AddProcessor(p)
 	if len(*logger.GetProcessors()) != 1 {
@@ -209,7 +206,6 @@ func TestLogger_must(t *testing.T) {
 		return
 	}
 
-
 	if l := catch("main"); l != "" {
 		t.Errorf("Expecting to get empty string got: %s", l)
 	}
@@ -219,7 +215,6 @@ func TestLogger_must(t *testing.T) {
 	}
 
 }
-
 
 func TestLogger_handlers(t *testing.T) {
 	logger := NewLogger("main")
@@ -248,43 +243,48 @@ func logAll(l LoggerInterface, r Record) {
 	l.Debug(r)
 }
 
-type formatter struct { f func(r Record, w io.Writer) error }
-func (f formatter) 	Format(r Record, w io.Writer) (error) { return f.f(r,w) }
-
-type handler struct {
-	name        string
-	level       LogLevel
-	formatter   FormatterInterface
-	buff        io.Writer
-	handle		func(Record, *handler) bool
-	channels    *ChannelNames
-	bubble		bool
+type formatter struct {
+	f func(r Record, w io.Writer) error
 }
 
-func (h handler) GetName() string { return h.name }
-func (h handler) GetLevel() LogLevel { return h.level }
-func (h handler) GetFormatter() FormatterInterface { return h.formatter }
-func (h handler) SetFormatter(formatter FormatterInterface) { }
-func (h handler) GetChannels() *ChannelNames { return h.channels }
-func (h handler) HasChannels() bool { return h.channels.Len() > 0 }
-func (h handler) SetChannels(c *ChannelNames) { h.channels = c }
-func (h handler) Support(record Record) bool { return h.level <= record.Level }
-func (h handler) Handle(record Record) bool { return h.handle(record, &h) }
+func (f formatter) Format(r Record, w io.Writer) error { return f.f(r, w) }
+
+type handler struct {
+	name      string
+	level     LogLevel
+	formatter FormatterInterface
+	buff      io.Writer
+	handle    func(*Record, *handler) bool
+	channels  *ChannelNames
+	bubble    bool
+}
+
+func (h handler) GetName() string                           { return h.name }
+func (h handler) GetLevel() LogLevel                        { return h.level }
+func (h handler) GetFormatter() FormatterInterface          { return h.formatter }
+func (h handler) SetFormatter(formatter FormatterInterface) {}
+func (h handler) GetChannels() *ChannelNames                { return h.channels }
+func (h handler) HasChannels() bool                         { return h.channels.Len() > 0 }
+func (h handler) SetChannels(c *ChannelNames)               { h.channels = c }
+func (h handler) Support(record Record) bool                { return h.level <= record.Level }
+func (h handler) Handle(record *Record) bool                { return h.handle(record, &h) }
+func (h handler) AddProcessor(Processor)                    {}
+func (h handler) GetProcessors() *Processors                { return nil }
 
 func defaultHandler(name string, level LogLevel, writer io.Writer) *handler {
 	return &handler{
 		name,
 		level,
 		&formatter{
-			func(r Record, w io.Writer)error {
-				r.Time = test_time;
-				_, e := fmt.Fprintln(w,r);
+			func(r Record, w io.Writer) error {
+				r.Time = test_time
+				_, e := fmt.Fprintln(w, r)
 				return e
 			},
 		},
 		writer,
-		func(r Record, h *handler) bool {
-			h.GetFormatter().Format(r, h.buff)
+		func(r *Record, h *handler) bool {
+			h.GetFormatter().Format(*r, h.buff)
 			return h.bubble
 		},
 		new(ChannelNames),

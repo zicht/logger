@@ -75,7 +75,6 @@ func TestChannels_excluded(t *testing.T) {
 		t.Error("Channel should support channel test")
 	}
 
-
 	if err := channels.AddChannel(ChannelName("003")); err == nil {
 		t.Error("Expecting to get error while adding channel '003'")
 	} else {

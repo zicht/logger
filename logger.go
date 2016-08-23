@@ -1,10 +1,10 @@
 package logger
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
-	"errors"
 )
 
 type (
@@ -25,9 +25,7 @@ type (
 		processors *Processors
 		mutex      sync.RWMutex
 	}
-	Handlers        []HandlerInterface
-	Processors      []func(record *Record)
-	Channels        map[string]*Channel
+	Channels map[string]*Channel
 )
 
 func NewLogger(name string, handlers ...HandlerInterface) *Logger {
@@ -49,7 +47,7 @@ func NewLogger(name string, handlers ...HandlerInterface) *Logger {
 	}
 }
 
-func (l *Logger) AddProcessor(processor func(record *Record)) {
+func (l *Logger) AddProcessor(processor Processor) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	(*l.processors) = append(*l.processors, processor)
@@ -61,7 +59,6 @@ func (l *Logger) GetProcessors() *Processors {
 	return l.processors
 }
 
-// AddHandler adds a handler to the stack for outputting the messages
 func (l *Logger) AddHandler(handler HandlerInterface) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -117,17 +114,22 @@ func (l *Logger) Get(name string) (LoggerInterface, error) {
 	}
 }
 
-func (l *Logger) handle(record Record) {
-	for i := 0; i < len(*l.processors); i++ {
-		(*l.processors)[i](&record)
-	}
-	for i := 0; i < len(*l.handlers); i++ {
-		if (*l.handlers)[i].HasChannels() && false == (*l.handlers)[i].GetChannels().Support(record.Channel) {
-			continue
+func (l *Logger) handle(record *Record) {
+
+	if l.processors.Len() > 0 {
+		for _, k := range l.processors.Keys() {
+			(*l.processors)[k](record)
 		}
-		if (*l.handlers)[i].Support(record) {
-			if false == (*l.handlers)[i].Handle(record) {
-				break
+	}
+	if l.handlers.Len() > 0 {
+		for _, k := range l.handlers.Keys() {
+			if (*l.handlers)[k].HasChannels() && false == (*l.handlers)[k].GetChannels().Support(record.Channel) {
+				continue
+			}
+			if (*l.handlers)[k].Support(*record) {
+				if !(*l.handlers)[k].Handle(record) {
+					break
+				}
 			}
 		}
 	}
@@ -138,19 +140,19 @@ func (l *Logger) log(level LogLevel, channel ChannelName, message interface{}) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	var record Record
+	var record *Record
 
 	switch value := message.(type) {
 	case *Record:
-		record = *value
-	case Record:
 		record = value
+	case Record:
+		record = &value
 	case string:
-		record = Record{Message: value}
+		record = &Record{Message: value}
 	case error:
-		record = Record{Message: value.Error()}
+		record = &Record{Message: value.Error()}
 	default:
-		record = Record{Message: fmt.Sprint(value)}
+		record = &Record{Message: fmt.Sprint(value)}
 	}
 
 	record.Time = time.Now()

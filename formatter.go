@@ -5,5 +5,5 @@ import (
 )
 
 type FormatterInterface interface {
-	Format(Record, io.Writer) (error)
+	Format(Record, io.Writer) error
 }

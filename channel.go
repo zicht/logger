@@ -1,8 +1,8 @@
 package logger
 
 type Channel struct {
-	logger      *Logger
-	name        ChannelName
+	logger *Logger
+	name   ChannelName
 }
 
 func (l *Channel) Emergency(message interface{}) {

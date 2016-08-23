@@ -15,7 +15,6 @@ func TestLogLevel(t *testing.T) {
 		550: "ALERT",
 		600: "EMERGENCY",
 		199: "UNKNOWN",
-
 	}
 
 	for i, n := range levels {

@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"time"
-	"testing"
 	"bytes"
-	"reflect"
 	"github.com/pbergman/logger"
 	"github.com/pbergman/logger/formatters"
 	"os"
+	"reflect"
+	"testing"
+	"time"
 )
 
 var test_time time.Time = time.Date(2016, 1, 2, 10, 20, 30, 0, time.Local)
@@ -40,6 +40,26 @@ func TestWriter(t *testing.T) {
 	}
 }
 
+func TestWriter_processor(t *testing.T) {
+	buff := new(bytes.Buffer)
+	record := getRecord("bar", logger.WARNING, logger.ChannelName("main"))
+	handler := NewWriterHandler("foo", buff, logger.INFO)
+	handler.AddProcessor(func(r *logger.Record){
+		r.Channel = logger.ChannelName("foo")
+	})
+
+	if handler.GetProcessors().Len() <= 0 {
+		t.Errorf("Expecting to have 1 processor got %d", handler.GetProcessors().Len())
+	}
+
+	handler.Handle(&record)
+
+
+	if record.Channel.GetName() != "foo" {
+		t.Errorf("Expecting record to have channel name 'foo' got: %s", record.Channel.GetName())
+	}
+}
+
 func TestWriter_channel(t *testing.T) {
 	buff := new(bytes.Buffer)
 	record := getRecord("bar", logger.WARNING, logger.ChannelName("main"))
@@ -58,9 +78,10 @@ func TestWriter_channel(t *testing.T) {
 	}
 }
 
-type testWriter struct { e error }
-func (w testWriter) Write(p []byte) (n int, err error) {return 0, nil }
-func (w testWriter) Close() error { return w.e }
+type testWriter struct{ e error }
+
+func (w testWriter) Write(p []byte) (n int, err error) { return 0, nil }
+func (w testWriter) Close() error                      { return w.e }
 
 func TestWriter_channels_not_nil(t *testing.T) {
 	handler := &WriterHandler{}
@@ -80,7 +101,7 @@ func TestWriter_channe(t *testing.T) {
 	)
 
 	if handler.GetChannels().Len() != 3 {
-		t.Errorf("Expecting 3 channels got %d", handler.GetChannels().Len() )
+		t.Errorf("Expecting 3 channels got %d", handler.GetChannels().Len())
 	}
 }
 
@@ -116,7 +137,7 @@ func TestWriter_getters(t *testing.T) {
 		t.Errorf("Expecting to get same channel colection as was set (%p != %p)", formatter, handler.GetFormatter())
 	}
 
-	if false == handler.HasChannels() && handler.GetChannels().Len() != 2  {
+	if false == handler.HasChannels() && handler.GetChannels().Len() != 2 {
 		t.Errorf("Expecting not to have 2 channels got %d", handler.GetChannels().Len())
 	}
 
@@ -124,8 +145,8 @@ func TestWriter_getters(t *testing.T) {
 		t.Errorf("Expecting default bubble to be true got %t", handler.GetBubble())
 	}
 
-	if ret := handler.Handle(logger.Record{}); ret != false {
-		t.Errorf("Expecting propagate to be true", ret)
+	if ret := handler.Handle(&logger.Record{}); ret != true {
+		t.Errorf("Expecting propagate to be true got %t", ret)
 	}
 
 	handler.SetBubble(false)
@@ -134,8 +155,8 @@ func TestWriter_getters(t *testing.T) {
 		t.Errorf("Expecting default bubble to be true got %t", handler.GetBubble())
 	}
 
-	if ret := handler.Handle(logger.Record{}); ret != true {
-		t.Errorf("Expecting propagate to be false", ret)
+	if ret := handler.Handle(&logger.Record{}); ret != false {
+		t.Errorf("Expecting propagate to be false got %t", ret)
 	}
 
 	// break template formatter with bad syntax!
@@ -149,7 +170,7 @@ func TestWriter_getters(t *testing.T) {
 			}
 		}()
 
-		handler.Handle(logger.Record{})
+		handler.Handle(&logger.Record{})
 
 		return
 	}()
@@ -157,6 +178,5 @@ func TestWriter_getters(t *testing.T) {
 	if err == "" {
 		t.Errorf("Expecting to have error about template syntax.")
 	}
-
 
 }
