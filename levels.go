@@ -1,4 +1,6 @@
-package level
+package logger
+
+type LogLevel uint16
 
 const (
 	// Levels as described by http://tools.ietf.org/html/rfc5424
@@ -12,7 +14,6 @@ const (
 	DEBUG     LogLevel = 100
 )
 
-type LogLevel uint16
 
 func (l LogLevel) String() string {
 	switch l {

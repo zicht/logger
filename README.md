@@ -1,28 +1,23 @@
-# logger
+## Logger
 
-This was my first project in go, to see how it all works and decided to make this because a was missing a logger that
-could dispatch multiple handlers and processors (like monolog for php).
+This a simple multi channel logger than register different channels and processors similar as monolog (php).  
 
-
-If you want to add the file name and line number of error messages you could use the TraceProcessor :
+Each channel can be bind to a channel(s), excluded or write to all handlers.
 
 ```
-	processor := processors.NewTraceProcessor(logger.DEBUG)
-	Logger = logger.NewLogger("some_name", handlers.NewWriterHandler(os.Stdout, level.DEBUG))
-	Logger.AddProcessor(processor.Process)
+logger := logger.NewLogger(
+    "main",
+    handlers.NewWriterHandler(
+        "main_handler", o
+        s.Stdout, 
+        logger.INFO, 
+        logger.ChannelName("redis"),
+    ),     
+)
+
+logger.Debug("foo")                     // will print nothing
+logger.Register("redis")                // register channel
+logger.MustGet("redis").Debug("foo")    // will print log message 
+
 ```
-
-Handler are used to define how the messages are handled. You can register multiple handler to write to file and stdout
-for example with different levels. So for example wite to file with lever debug and one to stdout with level warning:
-
-```
-	Logger = logger.NewLogger(
-		"some_name",
-		handlers.NewWriterHandler(os.Stdout, level.INFO),
-		handlers.NewFileHandler("file.ext", logger.DEBUG),
-	)
-
-```
-You could also create your own one by implementing the HandlerInterface
-
-also see docs/example for some usages
+see [godoc.org](https://godoc.org/github.com/pbergman/logger) for docs

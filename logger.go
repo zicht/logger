@@ -1,178 +1,192 @@
-// Package logger, it a is a simple logger inspired by monolog
-// it can register multiple handlers to write the records to.
 package logger
 
 import (
 	"fmt"
-	"os"
 	"sync"
 	"time"
-	"github.com/pbergman/logger/handlers"
-	"github.com/pbergman/logger/level"
-	"github.com/pbergman/logger/messages"
-	"github.com/pbergman/logger/debug"
+	"errors"
 )
 
-type LoggerInterface interface {
-	// Write methods
-	Emergency(message interface{})
-	Alert(message interface{})
-	Critical(message interface{})
-	Error(message interface{})
-	Warning(message interface{})
-	Notice(message interface{})
-	Info(message interface{})
-	Debug(message interface{})
-	// Processor methods
-	AddProcessor(processor func(record *messages.Record))
-	GetProcessors() []func(record *messages.Record)
-	// Handler methods
-	AddHandler(handler handlers.HandlerInterface)
-	GetHandlers() []handlers.HandlerInterface
-	// Helper methods
-	CheckError(err error)
-	CheckWarning(err error)
-}
+type (
+	LoggerInterface interface {
+		Emergency(message interface{})
+		Alert(message interface{})
+		Critical(message interface{})
+		Error(message interface{})
+		Warning(message interface{})
+		Notice(message interface{})
+		Info(message interface{})
+		Debug(message interface{})
+	}
+	Logger struct {
+		name       string
+		channels   *Channels
+		handlers   *Handlers
+		processors *Processors
+		mutex      sync.RWMutex
+	}
+	Handlers        []HandlerInterface
+	Processors      []func(record *Record)
+	Channels        map[string]*Channel
+)
 
-type Logger struct {
-	name       string
-	handlers   []handlers.HandlerInterface
-	processors []func(record *messages.Record)
-	mutex      sync.Mutex
-	status     int
-	Trace      bool
-}
+func NewLogger(name string, handlers ...HandlerInterface) *Logger {
 
-func NewLogger(name string, handlers ...handlers.HandlerInterface) *Logger {
+	handler := new(Handlers)
+
+	for _, h := range handlers {
+		(*handler) = append(*handler, h)
+	}
+
+	channels := make(Channels, 1)
+	channels[name] = nil
+
 	return &Logger{
 		name:       name,
-		handlers:   handlers,
-		Trace:      true,
+		channels:   &channels,
+		processors: new(Processors),
+		handlers:   handler,
 	}
 }
 
-// Main function that will call the handlers and processors
-func (l *Logger) log(level level.LogLevel, m interface{}) {
+func (l *Logger) AddProcessor(processor func(record *Record)) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	var message *messages.Record
-
-	switch t := m.(type) {
-	case *messages.Record:
-		message = t
-	case error:
-		message = new(messages.Record)
-		message.Message = t.Error()
-		message.Extra   = make(map[string]interface{}, 0)
-	case string:
-		message = new(messages.Record)
-		message.Message = t
-		message.Extra   = make(map[string]interface{}, 0)
-	default:
-		message = new(messages.Record)
-		message.Message = fmt.Sprintf("%#v", t)
-		message.Extra   = make(map[string]interface{}, 0)
-	}
-
-	if message.Time.IsZero() {
-		message.Time = time.Now()
-	}
-
-	if message.Level == 0 {
-		message.Level = level
-	}
-
-	if l.Trace && message.Trace == nil {
-		message.Trace = debug.NewTrace(3)
-	}
-
-	for _, processor := range l.processors {
-		processor(message)
-	}
-
-	for _, handler := range l.handlers {
-		if handler.Support(message.Level) {
-			handler.Write(l.name, level, message)
-		}
-	}
+	(*l.processors) = append(*l.processors, processor)
 }
 
-// AddProcessor add a record processor to stack that
-// can edit the extra records of all messages
-func (l *Logger) AddProcessor(processor func(record *messages.Record)) {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
-	l.processors = append(l.processors, processor)
-}
-
-func (l *Logger) GetProcessors() []func(record *messages.Record) {
+func (l *Logger) GetProcessors() *Processors {
+	l.mutex.RLock()
+	defer l.mutex.RUnlock()
 	return l.processors
 }
 
 // AddHandler adds a handler to the stack for outputting the messages
-func (l *Logger) AddHandler(handler handlers.HandlerInterface) {
+func (l *Logger) AddHandler(handler HandlerInterface) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	l.handlers = append(l.handlers, handler)
+
+	for i := 0; i < len(*l.handlers); i++ {
+		if (*l.handlers)[i].GetName() == handler.GetName() {
+			return errors.New("A handler with name " + handler.GetName() + " is allready registered.")
+		}
+	}
+	(*l.handlers) = append(*l.handlers, handler)
+	return nil
 }
 
-func (l *Logger) GetHandlers() []handlers.HandlerInterface {
+func (l *Logger) GetHandlers() *Handlers {
+	l.mutex.RLock()
+	defer l.mutex.RUnlock()
 	return l.handlers
 }
 
-// CheckError check if error is not nil if
-// so it will print error message and exit
-func (l *Logger) CheckError(err error) {
-	if err != nil {
-		l.log(level.ERROR, err)
-		os.Exit(1)
+func (l *Logger) Register(name string) error {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	if _, o := (*l.channels)[name]; !o {
+		(*l.channels)[name] = nil
+	} else {
+		return errors.New("Channel " + name + " is allready registered.")
+	}
+	return nil
+}
+
+func (l *Logger) MustGet(name string) LoggerInterface {
+	if c, e := l.Get(name); e != nil {
+		panic(e)
+	} else {
+		return c
 	}
 }
 
-// CheckWarning is same as CheckError but will
-// print warning message and will not exit
-func (l *Logger) CheckWarning(err error) {
-	if err != nil {
-		l.log(level.WARNING, err)
+func (l *Logger) Get(name string) (LoggerInterface, error) {
+	l.mutex.RLock()
+	defer l.mutex.RUnlock()
+	if v, o := (*l.channels)[name]; o {
+		if v == nil {
+			(*l.channels)[name] = &Channel{
+				logger: l,
+				name:   ChannelName(name),
+			}
+			v = (*l.channels)[name]
+		}
+		return v, nil
+	} else {
+		return nil, errors.New("Requesting a non existing channel (" + name + ")")
 	}
 }
 
-// Emergency will dispatch a log event of severity Emergency
+func (l *Logger) handle(record Record) {
+	for i := 0; i < len(*l.processors); i++ {
+		(*l.processors)[i](&record)
+	}
+	for i := 0; i < len(*l.handlers); i++ {
+		if (*l.handlers)[i].HasChannels() && false == (*l.handlers)[i].GetChannels().Support(record.Channel) {
+			continue
+		}
+		if (*l.handlers)[i].Support(record) {
+			if false == (*l.handlers)[i].Handle(record) {
+				break
+			}
+		}
+	}
+}
+
+func (l *Logger) log(level LogLevel, channel ChannelName, message interface{}) {
+
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	var record Record
+
+	switch value := message.(type) {
+	case *Record:
+		record = *value
+	case Record:
+		record = value
+	case string:
+		record = Record{Message: value}
+	case error:
+		record = Record{Message: value.Error()}
+	default:
+		record = Record{Message: fmt.Sprint(value)}
+	}
+
+	record.Time = time.Now()
+	record.Level = level
+	record.Channel = channel
+	l.handle(record)
+}
+
 func (l *Logger) Emergency(message interface{}) {
-	l.log(level.EMERGENCY, message)
+	l.MustGet(l.name).Emergency(message)
 }
 
-// Alert will dispatch a log event of severity Alert
 func (l *Logger) Alert(message interface{}) {
-	l.log(level.ALERT, message)
+	l.MustGet(l.name).Alert(message)
 }
 
-// Critical will dispatch a log event of severity Critical
 func (l *Logger) Critical(message interface{}) {
-	l.log(level.CRITICAL, message)
+	l.MustGet(l.name).Critical(message)
 }
 
-// Error will dispatch a log event of severity Error
 func (l *Logger) Error(message interface{}) {
-	l.log(level.ERROR, message)
+	l.MustGet(l.name).Error(message)
 }
 
-// Warning will dispatch a log event of severity Warning
 func (l *Logger) Warning(message interface{}) {
-	l.log(level.WARNING, message)
+	l.MustGet(l.name).Warning(message)
 }
 
-// Notice will dispatch a log event of severity Notice
 func (l *Logger) Notice(message interface{}) {
-	l.log(level.NOTICE, message)
+	l.MustGet(l.name).Notice(message)
 }
 
-// Info will dispatch a log event of severity Info
 func (l *Logger) Info(message interface{}) {
-	l.log(level.INFO, message)
+	l.MustGet(l.name).Info(message)
 }
 
-// Debug will dispatch a log event of severity Debug
 func (l *Logger) Debug(message interface{}) {
-	l.log(level.DEBUG, message)
+	l.MustGet(l.name).Debug(message)
 }
