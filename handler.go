@@ -4,8 +4,6 @@ import "sort"
 
 type (
 	HandlerInterface interface {
-		// Unique name of handler
-		GetName() string
 		// Should return true when a
 		// record can be processed
 		// by this handler

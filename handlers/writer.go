@@ -10,7 +10,7 @@ type WriterHandler struct {
 	Handler
 }
 
-func NewWriterHandler(name string, writer io.Writer, level logger.LogLevel, channels ...logger.ChannelName) *WriterHandler {
+func NewWriterHandler(writer io.Writer, level logger.LogLevel, channels ...logger.ChannelName) *WriterHandler {
 	cn := new(logger.ChannelNames)
 	for _, c := range channels {
 		cn.AddChannel(c)
@@ -18,7 +18,6 @@ func NewWriterHandler(name string, writer io.Writer, level logger.LogLevel, chan
 	return &WriterHandler{
 		writer,
 		Handler{
-			name:       name,
 			channels:   cn,
 			level:      level,
 			bubble:     true,
@@ -44,4 +43,11 @@ func (w *WriterHandler) Handle(record *logger.Record) bool {
 
 func (w *WriterHandler) Support(record logger.Record) bool {
 	return w.level <= record.Level
+}
+
+func (w *WriterHandler) Close() error {
+	if closer, ok := w.writer.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
 }

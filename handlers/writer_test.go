@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"errors"
 	"github.com/pbergman/logger"
 	"github.com/pbergman/logger/formatters"
 	"os"
@@ -25,7 +26,7 @@ func getRecord(m string, l logger.LogLevel, n logger.ChannelName) logger.Record 
 func TestWriter(t *testing.T) {
 	record := getRecord("bar", logger.WARNING, logger.ChannelName("main"))
 	buff := new(bytes.Buffer)
-	handler := NewWriterHandler("foo", buff, logger.INFO)
+	handler := NewWriterHandler(buff, logger.INFO)
 	if false == handler.Support(record) {
 		t.Errorf("Handler should support level %s (%s > %s)", record.Level, record.Level, handler.level)
 	}
@@ -43,8 +44,8 @@ func TestWriter(t *testing.T) {
 func TestWriter_processor(t *testing.T) {
 	buff := new(bytes.Buffer)
 	record := getRecord("bar", logger.WARNING, logger.ChannelName("main"))
-	handler := NewWriterHandler("foo", buff, logger.INFO)
-	handler.AddProcessor(func(r *logger.Record){
+	handler := NewWriterHandler(buff, logger.INFO)
+	handler.AddProcessor(func(r *logger.Record) {
 		r.Channel = logger.ChannelName("foo")
 	})
 
@@ -54,7 +55,6 @@ func TestWriter_processor(t *testing.T) {
 
 	handler.Handle(&record)
 
-
 	if record.Channel.GetName() != "foo" {
 		t.Errorf("Expecting record to have channel name 'foo' got: %s", record.Channel.GetName())
 	}
@@ -63,7 +63,7 @@ func TestWriter_processor(t *testing.T) {
 func TestWriter_channel(t *testing.T) {
 	buff := new(bytes.Buffer)
 	record := getRecord("bar", logger.WARNING, logger.ChannelName("main"))
-	handler := NewWriterHandler("foo", buff, logger.INFO)
+	handler := NewWriterHandler(buff, logger.INFO)
 
 	if err := handler.GetChannels().AddChannel(logger.ChannelName("!main")); err != nil {
 		t.Error(err.Error())
@@ -77,6 +77,32 @@ func TestWriter_channel(t *testing.T) {
 		t.Errorf("Handler should support channel %s (handler: %s)", record.Channel.GetName(), (*handler.channels)[handler.channels.FindChannel("main")])
 	}
 }
+
+func TestWriter_close(t *testing.T) {
+	writer := &testWriter{}
+	handler := NewWriterHandler(writer, logger.INFO)
+
+	if err := handler.Close(); err != nil {
+		t.Errorf("Expecting to get nil error got %#v", err)
+	}
+	writer.e = errors.New("foo")
+	if err := handler.Close(); err == nil {
+		t.Error("Expecting to get a error")
+	} else {
+		if str := err.Error(); str != "foo" {
+			t.Errorf("Expecting 'foo' got: %s", str)
+		}
+	}
+	// no io.Closer writer
+	handler.writer = &testWriterNoClose{}
+	if err := handler.Close(); err != nil {
+		t.Errorf("Expecting to get nil error got %#v", err)
+	}
+}
+
+type testWriterNoClose struct{ e error }
+
+func (w testWriterNoClose) Write(p []byte) (n int, err error) { return 0, nil }
 
 type testWriter struct{ e error }
 
@@ -92,7 +118,6 @@ func TestWriter_channels_not_nil(t *testing.T) {
 
 func TestWriter_channe(t *testing.T) {
 	handler := NewWriterHandler(
-		"foo",
 		os.Stdout,
 		logger.INFO,
 		logger.ChannelName("foo"),
@@ -107,11 +132,7 @@ func TestWriter_channe(t *testing.T) {
 
 func TestWriter_getters(t *testing.T) {
 	writer := testWriter{}
-	handler := NewWriterHandler("foo", &writer, logger.INFO)
-
-	if handler.GetName() != "foo" {
-		t.Errorf("Expecting name 'foo' got:  %s", handler.GetName())
-	}
+	handler := NewWriterHandler(&writer, logger.INFO)
 
 	if handler.GetLevel() != logger.INFO {
 		t.Errorf("Expecting level 'INFO' got:  %s", logger.INFO)

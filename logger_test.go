@@ -21,7 +21,7 @@ func getRecord(m string, n ChannelName) Record {
 }
 
 func ExampleLogger_processor() {
-	logger := NewLogger("main", defaultHandler("main_handler", DEBUG, os.Stdout))
+	logger := NewLogger("main", defaultHandler(DEBUG, os.Stdout))
 	logger.AddProcessor(func(r *Record) {
 		//pc, file, line, _ := runtime.Caller(3)
 		//r.Context = map[string]interface{}{
@@ -41,7 +41,7 @@ func ExampleLogger_processor() {
 }
 
 func ExampleLogger_types() {
-	logger := NewLogger("main", defaultHandler("main_handler", DEBUG, os.Stdout))
+	logger := NewLogger("main", defaultHandler(DEBUG, os.Stdout))
 	types := []interface{}{
 		"Simple string message",
 		errors.New("Simple error message"),
@@ -67,7 +67,7 @@ func ExampleLogger_types() {
 
 func ExampleLogger_levels() {
 
-	handler := defaultHandler("main_handler", DEBUG, os.Stdout)
+	handler := defaultHandler(DEBUG, os.Stdout)
 	logger := NewLogger("main", handler)
 	levels := [9]int{100, 200, 250, 300, 400, 500, 550, 600, 199}
 
@@ -158,16 +158,16 @@ func TestLogger_processor(t *testing.T) {
 
 func ExampleLogger_handle() {
 
-	handler1 := defaultHandler("main_handler1", DEBUG, os.Stdout)
+	handler1 := defaultHandler(DEBUG, os.Stdout)
 	handler1.channels.AddChannel(ChannelName("foo"))
 	handler1.channels.AddChannel(ChannelName("main"))
 
-	handler2 := defaultHandler("main_handler2", DEBUG, os.Stdout)
+	handler2 := defaultHandler(DEBUG, os.Stdout)
 	handler2.channels.AddChannel(ChannelName("bar"))
 	handler2.channels.AddChannel(ChannelName("main"))
 	handler2.bubble = false
 
-	handler3 := defaultHandler("main_handler3", DEBUG, os.Stdout)
+	handler3 := defaultHandler(DEBUG, os.Stdout)
 	handler3.channels.AddChannel(ChannelName("foo"))
 	handler3.channels.AddChannel(ChannelName("main"))
 
@@ -216,19 +216,39 @@ func TestLogger_must(t *testing.T) {
 
 }
 
+func TestLogger_close(t *testing.T) {
+
+	logger := NewLogger("main")
+
+	if err := logger.Close(); err != nil {
+		t.Errorf("Expecting empty error got: %d", err)
+	}
+
+	logger.AddHandler(defaultHandler(DEBUG, os.Stdout))
+
+	if err := logger.Close(); err != nil {
+		t.Errorf("Expecting empty error got: %d", err)
+	}
+
+	(*logger.handlers)[0].(*handler).err = errors.New("foo")
+
+	if err := logger.Close(); err == nil {
+		t.Error("Expecting a error")
+	} else {
+
+		if str := err.Error(); str != "foo" {
+			t.Errorf("Expecting 'foo' got %s", str)
+		}
+	}
+}
+
 func TestLogger_handlers(t *testing.T) {
 	logger := NewLogger("main")
-	logger.AddHandler(defaultHandler("main_handler1", DEBUG, os.Stdout))
-	logger.AddHandler(defaultHandler("main_handler2", DEBUG, os.Stdout))
+	logger.AddHandler(defaultHandler(DEBUG, os.Stdout))
+	logger.AddHandler(defaultHandler(DEBUG, os.Stdout))
 
 	if len(*logger.GetHandlers()) != 2 {
 		t.Errorf("Expecting to have 2 handers got: %d", len(*logger.GetHandlers()))
-	}
-
-	ret := logger.AddHandler(defaultHandler("main_handler2", DEBUG, os.Stdout))
-
-	if ret.Error() != "A handler with name main_handler2 is allready registered." {
-		t.Errorf("Expecting error message: 'A handler with name main_handler2 is allready registered.' Got: %s", ret)
 	}
 }
 
@@ -250,16 +270,15 @@ type formatter struct {
 func (f formatter) Format(r Record, w io.Writer) error { return f.f(r, w) }
 
 type handler struct {
-	name      string
 	level     LogLevel
 	formatter FormatterInterface
 	buff      io.Writer
 	handle    func(*Record, *handler) bool
 	channels  *ChannelNames
 	bubble    bool
+	err       error
 }
 
-func (h handler) GetName() string                           { return h.name }
 func (h handler) GetLevel() LogLevel                        { return h.level }
 func (h handler) GetFormatter() FormatterInterface          { return h.formatter }
 func (h handler) SetFormatter(formatter FormatterInterface) {}
@@ -270,24 +289,24 @@ func (h handler) Support(record Record) bool                { return h.level <= 
 func (h handler) Handle(record *Record) bool                { return h.handle(record, &h) }
 func (h handler) AddProcessor(Processor)                    {}
 func (h handler) GetProcessors() *Processors                { return nil }
+func (h handler) Close() error                              { return h.err }
 
-func defaultHandler(name string, level LogLevel, writer io.Writer) *handler {
+func defaultHandler(level LogLevel, writer io.Writer) *handler {
 	return &handler{
-		name,
-		level,
-		&formatter{
+		level: level,
+		formatter: &formatter{
 			func(r Record, w io.Writer) error {
 				r.Time = test_time
 				_, e := fmt.Fprintln(w, r)
 				return e
 			},
 		},
-		writer,
-		func(r *Record, h *handler) bool {
+		buff: writer,
+		handle: func(r *Record, h *handler) bool {
 			h.GetFormatter().Format(*r, h.buff)
 			return h.bubble
 		},
-		new(ChannelNames),
-		true,
+		channels: new(ChannelNames),
+		bubble:   true,
 	}
 }

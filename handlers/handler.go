@@ -6,7 +6,6 @@ import (
 )
 
 type Handler struct {
-	name       string
 	channels   *logger.ChannelNames
 	formatter  logger.FormatterInterface
 	level      logger.LogLevel
@@ -20,10 +19,6 @@ func (h *Handler) AddProcessor(processor logger.Processor) {
 
 func (h *Handler) GetProcessors() *logger.Processors {
 	return h.processors
-}
-
-func (h *Handler) GetName() string {
-	return h.name
 }
 
 func (h *Handler) HasChannels() bool {

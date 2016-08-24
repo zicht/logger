@@ -17,13 +17,8 @@ func TestChannel(t *testing.T) {
 	}
 }
 
-//func ExampleChannel_exclusion() {
-//	handler := defaultHandler("main_handler", DEBUG, os.Stdout)
-//	handler
-//}
-
 func ExampleChannel() {
-	handler := defaultHandler("main_handler", DEBUG, os.Stdout)
+	handler := defaultHandler(DEBUG, os.Stdout)
 	logger := NewLogger("main", handler)
 	logger.Register("foo")
 	channel, _ := logger.Get("foo")

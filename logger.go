@@ -3,6 +3,7 @@ package logger
 import (
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 )
@@ -62,12 +63,6 @@ func (l *Logger) GetProcessors() *Processors {
 func (l *Logger) AddHandler(handler HandlerInterface) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-
-	for i := 0; i < len(*l.handlers); i++ {
-		if (*l.handlers)[i].GetName() == handler.GetName() {
-			return errors.New("A handler with name " + handler.GetName() + " is allready registered.")
-		}
-	}
 	(*l.handlers) = append(*l.handlers, handler)
 	return nil
 }
@@ -159,6 +154,28 @@ func (l *Logger) log(level LogLevel, channel ChannelName, message interface{}) {
 	record.Level = level
 	record.Channel = channel
 	l.handle(record)
+}
+
+func (l *Logger) Close() error {
+	var errStack *ErrorStack = nil
+	if l.handlers.Len() > 0 {
+		for _, k := range l.handlers.Keys() {
+			if closer, ok := (*l.handlers)[k].(io.Closer); ok {
+				if err := closer.Close(); err != nil {
+					if errStack == nil {
+						errStack = new(ErrorStack)
+					}
+					errStack.Add(err)
+				}
+			}
+		}
+	}
+	// explicit return nil else returns 0 in logger_test.go:224
+	if errStack != nil {
+		return errStack
+	} else {
+		return nil
+	}
 }
 
 func (l *Logger) Emergency(message interface{}) {
