@@ -4,23 +4,29 @@ import (
 	"github.com/pbergman/logger"
 )
 
-// ThresholdLevelHandler is a logger that will buffer the record until
+// ThresholdChannelHandler is a logger that will buffer the record until
 // the given threshold is reached or exceeded. stop_buffering is false
-// it will only process the logs in the buffer and then buffer again
-type ThresholdLevelHandler struct {
+// it will only process the logs in the buffer and then buffer again.
+//
+// It is similar as ThresholdLevelHandler but instead of setting a
+// threshold level you set a map channels and levels that will be
+// matched against the giver record
+type ThresholdChannelHandler struct {
+	levels  map[logger.ChannelName]logger.LogLevel
 	Handler
 	threshold
 }
 
-func NewThresholdLevelHandler(handler logger.HandlerInterface, level logger.LogLevel, buffSize int, channels ...logger.ChannelName) *ThresholdLevelHandler {
+func NewThresholdChannelHandler(handler logger.HandlerInterface, levels map[logger.ChannelName]logger.LogLevel, buffSize int, channels ...logger.ChannelName) *ThresholdChannelHandler {
 	cn := new(logger.ChannelNames)
 	for _, c := range channels {
 		cn.AddChannel(c)
 	}
-	return &ThresholdLevelHandler{
+	return &ThresholdChannelHandler{
+		levels,
 		Handler{
 			channels:   cn,
-			level:      level,
+			level:      logger.LogLevel(0),
 			bubble:     true,
 			processors: new(logger.Processors),
 		},
@@ -33,7 +39,7 @@ func NewThresholdLevelHandler(handler logger.HandlerInterface, level logger.LogL
 	}
 }
 
-func (f *ThresholdLevelHandler) Handle(record *logger.Record) bool {
+func (f *ThresholdChannelHandler) Handle(record *logger.Record) bool {
 	if f.processors.Len() > 0 {
 		for _, i := range f.processors.Keys() {
 			(*f.processors)[i](record)
@@ -45,7 +51,7 @@ func (f *ThresholdLevelHandler) Handle(record *logger.Record) bool {
 			f.buffer = append(f.buffer[:0], f.buffer[1:]...)
 		}
 		f.buffer = append(f.buffer, record)
-		if record.Level >= f.level {
+		if val, ok := f.levels[record.Channel]; ok && record.Level >= val {
 			if f.stop_buffering {
 				f.is_buffering = false
 			}
@@ -57,6 +63,5 @@ func (f *ThresholdLevelHandler) Handle(record *logger.Record) bool {
 	} else {
 		f.handler.Handle(record)
 	}
-
 	return f.bubble
 }
