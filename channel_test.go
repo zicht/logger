@@ -3,25 +3,12 @@ package logger
 import (
 	"fmt"
 	"os"
-	"testing"
 )
-
-func TestChannel(t *testing.T) {
-	logger := NewLogger("main")
-	var err error
-	if err = logger.Register("foo"); err != nil {
-		t.Error("Expecting error to be nil got: %s", err.Error())
-	}
-	if err = logger.Register("foo"); err == nil {
-		t.Error("Expecting error not to be nil.")
-	}
-}
 
 func ExampleChannel() {
 	handler := defaultHandler(DEBUG, os.Stdout)
 	logger := NewLogger("main", handler)
-	logger.Register("foo")
-	channel, _ := logger.Get("foo")
+	channel := logger.Get("foo")
 
 	levels := [9]int{100, 200, 250, 300, 400, 500, 550, 600, 199}
 

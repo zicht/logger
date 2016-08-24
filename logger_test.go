@@ -125,26 +125,12 @@ func ExampleLogger_levels() {
 
 func TestLogger_channel(t *testing.T) {
 	logger := NewLogger("main")
-	logger.Register("foo")
-
-	// check lazy loading
-	if (*logger.channels)["foo"] != nil {
-		t.Errorf("Expecting to be nil is %T", (*logger.channels)["foo"])
-	}
-
 	logger.Get("foo")
 
 	// check lazy loading
 	if (*logger.channels)["foo"] == nil {
 		t.Error("Expecting to be a Chanel instance not nil")
 	}
-
-	_, ret := logger.Get("bar")
-
-	if ret.Error() != "Requesting a non existing channel (bar)" {
-		t.Errorf("Expecting error message: 'Requesting a non existing channel (bar).' Got: %s", ret)
-	}
-
 }
 
 func TestLogger_processor(t *testing.T) {
@@ -172,11 +158,8 @@ func ExampleLogger_handle() {
 	handler3.channels.AddChannel(ChannelName("main"))
 
 	logger := NewLogger("main", handler1, handler2, handler3)
-	logger.Register("foo")
-	logger.Register("bar")
-
-	logger1, _ := logger.Get("foo")
-	logger2, _ := logger.Get("bar")
+	logger1 := logger.Get("foo")
+	logger2 := logger.Get("bar")
 
 	logger1.Debug("one")
 	logger2.Debug("two")
@@ -188,32 +171,6 @@ func ExampleLogger_handle() {
 	// {bar two <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
 	// {main hello <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
 	// {main hello <nil> 2016-01-02 10:20:30 +0100 CET DEBUG}
-}
-
-func TestLogger_must(t *testing.T) {
-	logger := NewLogger("main")
-
-	catch := func(name string) (err string) {
-
-		defer func() {
-			if r := recover(); r != nil {
-				err = r.(error).Error()
-			}
-		}()
-
-		logger.MustGet(name)
-
-		return
-	}
-
-	if l := catch("main"); l != "" {
-		t.Errorf("Expecting to get empty string got: %s", l)
-	}
-
-	if l := catch("foo"); l != "Requesting a non existing channel (foo)" {
-		t.Errorf("Expecting 'Requesting a non existing channel (foo)' got: '%s'", l)
-	}
-
 }
 
 func TestLogger_close(t *testing.T) {
