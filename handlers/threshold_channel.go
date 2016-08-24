@@ -12,7 +12,7 @@ import (
 // threshold level you set a map channels and levels that will be
 // matched against the giver record
 type ThresholdChannelHandler struct {
-	levels  map[logger.ChannelName]logger.LogLevel
+	levels map[logger.ChannelName]logger.LogLevel
 	Handler
 	threshold
 }

@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"testing"
 	"bytes"
 	"github.com/pbergman/logger"
+	"testing"
 )
 
 func TestThresholdChannel(t *testing.T) {

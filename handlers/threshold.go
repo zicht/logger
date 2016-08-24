@@ -1,9 +1,9 @@
 package handlers
 
 import (
+	"github.com/pbergman/logger"
 	"io"
 	"sort"
-	"github.com/pbergman/logger"
 )
 
 type threshold struct {
