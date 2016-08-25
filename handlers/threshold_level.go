@@ -50,7 +50,9 @@ func (f *ThresholdLevelHandler) Handle(record *logger.Record) bool {
 				f.is_buffering = false
 			}
 			f.bufferWalk(func(r *logger.Record) {
-				f.handler.Handle(r)
+				if f.handler.Support(*r) {
+					f.handler.Handle(r)
+				}
 			})
 			f.buffer = f.buffer[:0]
 		}

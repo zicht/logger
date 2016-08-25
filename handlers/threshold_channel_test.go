@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"github.com/pbergman/logger"
 	"testing"
+	"os"
+	"github.com/pbergman/logger/formatters"
 )
 
 func TestThresholdChannel(t *testing.T) {
@@ -114,4 +116,62 @@ func TestThresholdChannel_channel(t *testing.T) {
 	if false == handler.GetChannels().Support(logger.ChannelName("test")) {
 		t.Errorf("Handler should support channel %s (handler: %s)", record.Channel.GetName(), (*handler.channels)[handler.channels.FindChannel("main")])
 	}
+}
+
+func ExampleTestThresholdChannel_no_output() {
+	thresholds := map[logger.ChannelName]logger.LogLevel{
+		logger.ChannelName("app"):	logger.CRITICAL,
+		logger.ChannelName("main"):	logger.CRITICAL,
+	}
+	handler := NewWriterHandler(os.Stdout, logger.DEBUG)
+	handler.SetFormatter(formatters.NewCustomLineFormatter("{{.Channel | printf \"%-4s\" }} [{{ .Level | printf \"%-8s\" }}] :: {{ .Message }}\n"))
+	logwriter := logger.NewLogger("app", NewThresholdChannelHandler(handler,thresholds, 10))
+	// buffer again when threshold is reached
+	(*logwriter.GetHandlers())[0].(*ThresholdChannelHandler).SetStopBuffering(false)
+	// some random logging in channels app, bar and main
+	for _, cn := range []string{"app", "bar", "main"} {
+		logwriter.Get(cn).Error("foo")
+		logwriter.Get(cn).Warning("foo")
+		logwriter.Get(cn).Notice("foo")
+		logwriter.Get(cn).Info("foo")
+		logwriter.Get(cn).Debug("foo")
+	}
+	// not printing
+	logwriter.Get("bar").Critical("foo")
+	// Output:
+}
+
+func ExampleTestThresholdChannel() {
+	thresholds := map[logger.ChannelName]logger.LogLevel{
+		logger.ChannelName("app"):	logger.CRITICAL,
+		logger.ChannelName("main"):	logger.CRITICAL,
+	}
+	handler := NewWriterHandler(os.Stdout, logger.DEBUG)
+	handler.SetFormatter(formatters.NewCustomLineFormatter("{{.Channel | printf \"%-4s\" }} [{{ .Level | printf \"%-8s\" }}] :: {{ .Message }}\n"))
+	logwriter := logger.NewLogger("app", NewThresholdChannelHandler(handler,thresholds, 10))
+	// buffer again when threshold is reached
+	(*logwriter.GetHandlers())[0].(*ThresholdChannelHandler).SetStopBuffering(false)
+	// some random logging in channels app, bar and main
+	for _, cn := range []string{"app", "bar", "main"} {
+		logwriter.Get(cn).Error("foo")
+		logwriter.Get(cn).Warning("foo")
+		logwriter.Get(cn).Notice("foo")
+		logwriter.Get(cn).Info("foo")
+		logwriter.Get(cn).Debug("foo")
+	}
+	// not printing
+	logwriter.Get("bar").Critical("foo")
+	// should output now
+	logwriter.Get("app").Critical("foo")
+	// Output:
+	// bar  [NOTICE  ] :: foo
+	// bar  [INFO    ] :: foo
+	// bar  [DEBUG   ] :: foo
+	// main [ERROR   ] :: foo
+	// main [WARNING ] :: foo
+	// main [NOTICE  ] :: foo
+	// main [INFO    ] :: foo
+	// main [DEBUG   ] :: foo
+	// bar  [CRITICAL] :: foo
+	// app  [CRITICAL] :: foo
 }

@@ -6,6 +6,8 @@ import (
 	"github.com/pbergman/logger"
 	"io"
 	"testing"
+	"os"
+	"github.com/pbergman/logger/formatters"
 )
 
 type formatter struct{}
@@ -114,6 +116,52 @@ func TestThresholdLevel_channel(t *testing.T) {
 	if false == handler.GetChannels().Support(logger.ChannelName("test")) {
 		t.Errorf("Handler should support channel %s (handler: %s)", record.Channel.GetName(), (*handler.channels)[handler.channels.FindChannel("main")])
 	}
+}
+
+func ExampleTestThresholdLevel_no_output() {
+	handler := NewWriterHandler(os.Stdout, logger.DEBUG)
+	handler.SetFormatter(formatters.NewCustomLineFormatter("{{.Channel | printf \"%-4s\" }} [{{ .Level | printf \"%-8s\" }}] :: {{ .Message }}\n"))
+	logwriter := logger.NewLogger("app", NewThresholdLevelHandler(handler,logger.CRITICAL, 10))
+	// buffer again when threshold is reached
+	(*logwriter.GetHandlers())[0].(*ThresholdLevelHandler).SetStopBuffering(false)
+	// some random logging in channels app, bar and main
+	logwriter.Error("foo")
+	logwriter.Warning("foo")
+	logwriter.Notice("foo")
+	logwriter.Info("foo")
+	logwriter.Debug("foo")
+	// Output:
+}
+
+func ExampleTestThresholdLevel() {
+	handler := NewWriterHandler(os.Stdout, logger.INFO)
+	handler.SetFormatter(formatters.NewCustomLineFormatter("{{.Channel | printf \"%-4s\" }} [{{ .Level | printf \"%-8s\" }}] :: {{ .Message }}\n"))
+	logwriter := logger.NewLogger("app", NewThresholdLevelHandler(handler,logger.CRITICAL, 10))
+	// buffer again when threshold is reached
+	(*logwriter.GetHandlers())[0].(*ThresholdLevelHandler).SetStopBuffering(false)
+	// some random logging in channels app, bar and main
+	logwriter.Error("foo")
+	logwriter.Error("foo")
+	logwriter.Warning("foo")
+	logwriter.Warning("foo")
+	logwriter.Notice("foo")
+	logwriter.Notice("foo")
+	logwriter.Info("foo")
+	logwriter.Info("foo")
+	logwriter.Debug("foo")
+	logwriter.Debug("foo")
+	// should output now
+	logwriter.Critical("foo")
+	// Output:
+	// app  [ERROR   ] :: foo
+	// app  [WARNING ] :: foo
+	// app  [WARNING ] :: foo
+	// app  [NOTICE  ] :: foo
+	// app  [NOTICE  ] :: foo
+	// app  [INFO    ] :: foo
+	// app  [INFO    ] :: foo
+	// app  [CRITICAL] :: foo
+
 }
 
 type stub_handler struct{}
