@@ -118,7 +118,7 @@ func TestThresholdLevel_channel(t *testing.T) {
 	}
 }
 
-func ExampleThresholdLevel_no_output() {
+func ExampleThresholdLevelHandler_no_output() {
 	handler := NewWriterHandler(os.Stdout, logger.DEBUG)
 	handler.SetFormatter(formatters.NewCustomLineFormatter("{{.Channel | printf \"%-4s\" }} [{{ .Level | printf \"%-8s\" }}] :: {{ .Message }}\n"))
 	logwriter := logger.NewLogger("app", NewThresholdLevelHandler(handler,logger.CRITICAL, 10))
@@ -133,7 +133,7 @@ func ExampleThresholdLevel_no_output() {
 	// Output:
 }
 
-func ExampleThresholdLevel() {
+func ExampleThresholdLevelHandler() {
 	handler := NewWriterHandler(os.Stdout, logger.INFO)
 	handler.SetFormatter(formatters.NewCustomLineFormatter("{{.Channel | printf \"%-4s\" }} [{{ .Level | printf \"%-8s\" }}] :: {{ .Message }}\n"))
 	logwriter := logger.NewLogger("app", NewThresholdLevelHandler(handler,logger.CRITICAL, 10))
