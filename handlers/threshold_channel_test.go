@@ -118,7 +118,7 @@ func TestThresholdChannel_channel(t *testing.T) {
 	}
 }
 
-func ExampleTestThresholdChannel_no_output() {
+func ExampleThresholdChannel_no_output() {
 	thresholds := map[logger.ChannelName]logger.LogLevel{
 		logger.ChannelName("app"):	logger.CRITICAL,
 		logger.ChannelName("main"):	logger.CRITICAL,
@@ -141,7 +141,7 @@ func ExampleTestThresholdChannel_no_output() {
 	// Output:
 }
 
-func ExampleTestThresholdChannel() {
+func ExampleThresholdChannel() {
 	thresholds := map[logger.ChannelName]logger.LogLevel{
 		logger.ChannelName("app"):	logger.CRITICAL,
 		logger.ChannelName("main"):	logger.CRITICAL,
