@@ -116,6 +116,8 @@ func (l *Logger) log(level LogLevel, channel ChannelName, message interface{}) {
 		record = value
 	case Record:
 		record = &value
+	case *cm:
+		record = &Record{Message: value.m, Context: value.c}
 	case string:
 		record = &Record{Message: value}
 	case error:

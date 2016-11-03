@@ -40,6 +40,14 @@ func ExampleLogger_processor() {
 	// {main {Exmaple Trace processor example} map[func_name:github.com/pbergman/logger.ExampleLogger_processor] 2016-01-02 10:20:30 +0100 CET DEBUG}
 }
 
+func ExampleLogger_cm() {
+	logger := NewLogger("main", defaultHandler(DEBUG, os.Stdout))
+	logger.Debug(ContextMessage("Foo", map[string]interface{}{"one": 1}))
+
+	// Output:
+	// {main Foo map[one:1] 2016-01-02 10:20:30 +0100 CET DEBUG}
+}
+
 func ExampleLogger_types() {
 	logger := NewLogger("main", defaultHandler(DEBUG, os.Stdout))
 	types := []interface{}{
