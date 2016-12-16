@@ -111,19 +111,24 @@ func (l *Logger) log(level LogLevel, channel ChannelName, message interface{}) {
 
 	var record *Record
 
-	switch value := message.(type) {
-	case *Record:
-		record = value
-	case Record:
-		record = &value
-	case *cm:
-		record = &Record{Message: value.m, Context: value.c}
-	case string:
-		record = &Record{Message: value}
-	case error:
-		record = &Record{Message: value.Error()}
-	default:
-		record = &Record{Message: fmt.Sprint(value)}
+	if value, ok := message.(LogMessageInterface); ok {
+		message, context := value.GetLogMessage()
+		record = &Record{Message: message, Context: context}
+	} else {
+		switch value := message.(type) {
+		case *Record:
+			record = value
+		case Record:
+			record = &value
+		case *cm:
+			record = &Record{Message: value.m, Context: value.c}
+		case string:
+			record = &Record{Message: value}
+		case error:
+			record = &Record{Message: value.Error()}
+		default:
+			record = &Record{Message: fmt.Sprint(value)}
+		}
 	}
 
 	record.Time = time.Now()
