@@ -69,8 +69,8 @@ func (l *Logger) GetHandlers() *Handlers {
 }
 
 func (l *Logger) Get(name string) LoggerInterface {
-	l.mutex.RLock()
-	defer l.mutex.RUnlock()
+	l.mutex.Lock()
+	defer l.mutex.Lock()
 	var channel *Channel
 	var exist bool
 	if channel, exist = (*l.channels)[name]; !exist || channel == nil {
