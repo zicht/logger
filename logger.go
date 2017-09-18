@@ -25,7 +25,10 @@ type (
 		processors *Processors
 		mutex      sync.RWMutex
 	}
-	Channels map[string]*Channel
+	Channels struct {
+		c  map[string]*Channel
+		m  sync.RWMutex
+	}
 )
 
 func NewLogger(name string, handlers ...HandlerInterface) *Logger {
@@ -33,11 +36,12 @@ func NewLogger(name string, handlers ...HandlerInterface) *Logger {
 	for _, h := range handlers {
 		(*handler) = append(*handler, h)
 	}
-	channels := make(Channels, 1)
-	channels[name] = nil
+	channels := new(Channels)
+	channels.c = make(map[string]*Channel, 1)
+	channels.c[name] = nil
 	return &Logger{
 		name:       name,
-		channels:   &channels,
+		channels:   channels,
 		processors: new(Processors),
 		handlers:   handler,
 	}
@@ -69,16 +73,16 @@ func (l *Logger) GetHandlers() *Handlers {
 }
 
 func (l *Logger) Get(name string) LoggerInterface {
-	l.mutex.Lock()
-	defer l.mutex.Lock()
+	l.channels.m.Lock()
+	defer l.channels.m.Unlock()
 	var channel *Channel
 	var exist bool
-	if channel, exist = (*l.channels)[name]; !exist || channel == nil {
+	if channel, exist = l.channels.c[name]; !exist || channel == nil {
 		channel = &Channel{
 			logger: l,
 			name:   ChannelName(name),
 		}
-		(*l.channels)[name] = channel
+		l.channels.c[name] = channel
 	}
 	return channel
 }
