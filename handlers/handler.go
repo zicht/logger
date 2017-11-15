@@ -60,3 +60,11 @@ func (h *Handler) SetBubble(bubble bool) {
 func (h *Handler) GetBubble() bool {
 	return h.bubble
 }
+
+func (h *Handler) processRecord(record *logger.Record) {
+	if h.processors.Len() > 0 {
+		for _, i := range h.processors.Keys() {
+			(*h.processors)[i](record)
+		}
+	}
+}

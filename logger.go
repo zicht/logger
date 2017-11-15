@@ -26,8 +26,8 @@ type (
 		mutex      sync.RWMutex
 	}
 	Channels struct {
-		c  map[string]*Channel
-		m  sync.RWMutex
+		c map[string]*Channel
+		m sync.RWMutex
 	}
 )
 

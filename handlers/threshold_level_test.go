@@ -3,10 +3,11 @@ package handlers
 import (
 	"bytes"
 	"errors"
-	"github.com/pbergman/logger"
 	"io"
-	"testing"
 	"os"
+	"testing"
+
+	"github.com/pbergman/logger"
 	"github.com/pbergman/logger/formatters"
 )
 
@@ -25,9 +26,9 @@ func TestThresholdLevel(t *testing.T) {
 	if true != handler.Support(record) {
 		t.Errorf("Expecting to support record %#v", record)
 	}
-	if true != handler.IsStopBuffering() {
-		t.Error("Expecting default stop buffering to be true")
-	}
+	//if true != handler.IsStopBuffering() {
+	//	t.Error("Expecting default stop buffering to be true")
+	//}
 	if true != handler.IsBuffering() {
 		t.Error("Expecting default buffering to be true")
 	}
@@ -46,11 +47,11 @@ func TestThresholdLevel(t *testing.T) {
 	if str := buffer.String(); str != "DEBUG\nDEBUG\nDEBUG\nDEBUG\nERROR\n" {
 		t.Errorf("Expecting: 'DEBUG\nDEBUG\nDEBUG\nDEBUG\nERROR\n' got: %s", str)
 	}
-	handler.Handle(&record)
-	if s := len(handler.buffer); s > 0 {
-		t.Errorf("Expecting record not to be bufferd (s:%d).", s)
-	}
-	handler.SetStopBuffering(false)
+	//handler.Handle(&record)
+	//if s := len(handler.buffer); s > 0 {
+	//	t.Errorf("Expecting record not to be bufferd (s:%d).", s)
+	//}
+	//handler.SetStopBuffering(false)
 	for i := 0; i < 10; i++ {
 		handler.Handle(&record)
 	}
@@ -121,9 +122,9 @@ func TestThresholdLevel_channel(t *testing.T) {
 func ExampleThresholdLevelHandler_no_output() {
 	handler := NewWriterHandler(os.Stdout, logger.DEBUG)
 	handler.SetFormatter(formatters.NewCustomLineFormatter("{{.Channel | printf \"%-4s\" }} [{{ .Level | printf \"%-8s\" }}] :: {{ .Message }}\n"))
-	logwriter := logger.NewLogger("app", NewThresholdLevelHandler(handler,logger.CRITICAL, 10))
+	logwriter := logger.NewLogger("app", NewThresholdLevelHandler(handler, logger.CRITICAL, 10))
 	// buffer again when threshold is reached
-	(*logwriter.GetHandlers())[0].(*ThresholdLevelHandler).SetStopBuffering(false)
+	//(*logwriter.GetHandlers())[0].(*ThresholdLevelHandler).SetStopBuffering(false)
 	// some random logging in channels app, bar and main
 	logwriter.Error("foo")
 	logwriter.Warning("foo")
@@ -136,9 +137,9 @@ func ExampleThresholdLevelHandler_no_output() {
 func ExampleThresholdLevelHandler() {
 	handler := NewWriterHandler(os.Stdout, logger.INFO)
 	handler.SetFormatter(formatters.NewCustomLineFormatter("{{.Channel | printf \"%-4s\" }} [{{ .Level | printf \"%-8s\" }}] :: {{ .Message }}\n"))
-	logwriter := logger.NewLogger("app", NewThresholdLevelHandler(handler,logger.CRITICAL, 10))
+	logwriter := logger.NewLogger("app", NewThresholdLevelHandler(handler, logger.CRITICAL, 10))
 	// buffer again when threshold is reached
-	(*logwriter.GetHandlers())[0].(*ThresholdLevelHandler).SetStopBuffering(false)
+	//(*logwriter.GetHandlers())[0].(*ThresholdLevelHandler).SetStopBuffering(false)
 	// some random logging in channels app, bar and main
 	logwriter.Error("foo")
 	logwriter.Error("foo")

@@ -1,6 +1,8 @@
 package logger
 
-import "sort"
+import (
+	"sort"
+)
 
 type (
 	HandlerInterface interface {

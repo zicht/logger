@@ -28,11 +28,7 @@ func NewWriterHandler(writer io.Writer, level logger.LogLevel, channels ...logge
 
 func (w *WriterHandler) Handle(record *logger.Record) bool {
 
-	if w.processors.Len() > 0 {
-		for _, i := range w.processors.Keys() {
-			(*w.processors)[i](record)
-		}
-	}
+	w.processRecord(record)
 
 	if err := w.GetFormatter().Format(*record, w.writer); err != nil {
 		panic("Handler: Failed to format message, " + err.Error())

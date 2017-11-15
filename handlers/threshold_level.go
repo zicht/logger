@@ -8,7 +8,6 @@ import (
 // the given threshold is reached or exceeded. stop_buffering is false
 // it will only process the logs in the buffer and then buffer again
 type ThresholdLevelHandler struct {
-	Handler
 	threshold
 }
 
@@ -17,48 +16,27 @@ func NewThresholdLevelHandler(handler logger.HandlerInterface, level logger.LogL
 	for _, c := range channels {
 		cn.AddChannel(c)
 	}
-	return &ThresholdLevelHandler{
-		Handler{
-			channels:   cn,
-			level:      level,
-			bubble:     true,
-			processors: new(logger.Processors),
-		},
-		threshold{
-			handler,
-			make([]*logger.Record, 0, buffSize),
-			true,
-			true,
+	thresholdHandler := &ThresholdLevelHandler{
+		threshold: threshold{
+			handler:handler,
+			buffer: make([]*logger.Record, 0, buffSize),
+			is_buffering: true,
+			Handler: Handler{
+				channels:   cn,
+				level:      level,
+				bubble:     true,
+				processors: new(logger.Processors),
+			},
 		},
 	}
+	thresholdHandler.Strategy = thresholdHandler
+	return thresholdHandler
 }
 
-func (f *ThresholdLevelHandler) Handle(record *logger.Record) bool {
-	if f.processors.Len() > 0 {
-		for _, i := range f.processors.Keys() {
-			(*f.processors)[i](record)
-		}
-	}
-	if f.is_buffering {
-		// shift first element
-		if cap(f.buffer) == len(f.buffer) {
-			f.buffer = append(f.buffer[:0], f.buffer[1:]...)
-		}
-		f.buffer = append(f.buffer, record)
-		if record.Level >= f.level {
-			if f.stop_buffering {
-				f.is_buffering = false
-			}
-			f.bufferWalk(func(r *logger.Record) {
-				if f.handler.Support(*r) {
-					f.handler.Handle(r)
-				}
-			})
-			f.buffer = f.buffer[:0]
-		}
-	} else {
-		f.handler.Handle(record)
-	}
+func (f *ThresholdLevelHandler) StopBuffering(record *logger.Record) bool {
+	return record.Level >= f.level
+}
 
-	return f.bubble
+func (f *ThresholdLevelHandler) ValidateBuffering(buf BufferInterface) {
+	buf.SetBuffering(true)
 }

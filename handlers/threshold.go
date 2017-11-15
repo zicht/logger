@@ -1,19 +1,29 @@
 package handlers
 
 import (
-	"github.com/pbergman/logger"
 	"io"
 	"sort"
+
+	"github.com/pbergman/logger"
 )
 
+type BufferStrategy interface {
+	StopBuffering(*logger.Record) bool
+	ValidateBuffering(BufferInterface)
+}
+
+type BufferInterface interface{
+	SetBuffering(v bool)
+	IsBuffering() bool
+}
+
 type threshold struct {
-	handler logger.HandlerInterface
-	buffer  []*logger.Record
-	// when true it will stop buffering and just process
-	// records when threshold level is reached when false
-	// it will buffer again till threshold is reached again
-	stop_buffering bool
-	is_buffering   bool
+	handler 		logger.HandlerInterface
+	buffer  		[]*logger.Record
+	is_buffering   	bool
+	Strategy		BufferStrategy
+	// embedded handler
+	Handler
 }
 
 func (f *threshold) Support(record logger.Record) bool {
@@ -37,23 +47,26 @@ func (f *threshold) bufferWalk(c func(r *logger.Record)) {
 
 func (f *threshold) Clear() {
 	f.is_buffering = true
-	f.buffer = f.buffer[:0]
-}
-
-func (f *threshold) SetStopBuffering(v bool) {
-	if !v && !f.is_buffering {
-		// turn buffer back on
-		f.is_buffering = true
-	}
-	f.stop_buffering = v
-}
-
-func (f *threshold) IsStopBuffering() bool {
-	return f.stop_buffering
+	f.clearBuffer()
 }
 
 func (f *threshold) IsBuffering() bool {
 	return f.is_buffering
+}
+
+func (f *threshold) SetBuffering(v bool) {
+	f.is_buffering = v
+}
+
+func (f *threshold) clearBuffer() {
+	f.buffer = f.buffer[:0]
+}
+
+func (f *threshold) addToBuffer(record *logger.Record) {
+	if cap(f.buffer) == len(f.buffer) {
+		f.buffer = append(f.buffer[:0], f.buffer[1:]...)
+	}
+	f.buffer = append(f.buffer, record)
 }
 
 func (f *threshold) Close() error {
@@ -62,4 +75,30 @@ func (f *threshold) Close() error {
 	} else {
 		return nil
 	}
+}
+
+func (f *threshold) flush() {
+	f.bufferWalk(func(r *logger.Record) {
+		if f.handler.Support(*r) {
+			f.handler.Handle(r)
+		}
+	})
+}
+
+func (f *threshold) Handle(record *logger.Record) bool {
+	f.processRecord(record)
+	if !f.is_buffering {
+		f.Strategy.ValidateBuffering(f)
+	}
+	if f.is_buffering {
+		f.addToBuffer(record)
+		if f.Strategy.StopBuffering(record) {
+			f.is_buffering = false
+			f.flush()
+			f.clearBuffer()
+		}
+	} else {
+		f.handler.Handle(record)
+	}
+	return f.bubble
 }

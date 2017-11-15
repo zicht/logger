@@ -45,11 +45,7 @@ func (h *MappedWriterHandler) Handle(record *logger.Record) bool {
 		}
 	}
 
-	if h.processors.Len() > 0 {
-		for _, i := range h.processors.Keys() {
-			(*h.processors)[i](record)
-		}
-	}
+	h.processRecord(record)
 
 	if err := h.GetFormatter().Format(*record, h.writers[level]); err != nil {
 		panic("Handler: Failed to format message, " + err.Error())

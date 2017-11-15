@@ -12,8 +12,7 @@ import (
 // threshold level you set a map channels and levels that will be
 // matched against the giver record
 type ThresholdChannelHandler struct {
-	levels map[logger.ChannelName]logger.LogLevel
-	Handler
+	levels 		 map[logger.ChannelName]logger.LogLevel
 	threshold
 }
 
@@ -22,48 +21,31 @@ func NewThresholdChannelHandler(handler logger.HandlerInterface, levels map[logg
 	for _, c := range channels {
 		cn.AddChannel(c)
 	}
-	return &ThresholdChannelHandler{
-		levels,
-		Handler{
-			channels:   cn,
-			level:      logger.LogLevel(0),
-			bubble:     true,
-			processors: new(logger.Processors),
-		},
-		threshold{
-			handler,
-			make([]*logger.Record, 0, buffSize),
-			true,
-			true,
+	thresholdHandler := &ThresholdChannelHandler{
+		levels: levels,
+		threshold: threshold{
+			handler: handler,
+			buffer: make([]*logger.Record, 0, buffSize),
+			is_buffering: true,
+			Handler: Handler{
+				channels:   cn,
+				level:      logger.LogLevel(0),
+				bubble:     true,
+				processors: new(logger.Processors),
+			},
 		},
 	}
+	thresholdHandler.Strategy = thresholdHandler
+	return thresholdHandler
 }
 
-func (f *ThresholdChannelHandler) Handle(record *logger.Record) bool {
-	if f.processors.Len() > 0 {
-		for _, i := range f.processors.Keys() {
-			(*f.processors)[i](record)
-		}
+func (f *ThresholdChannelHandler) StopBuffering(record *logger.Record) bool {
+	if val, ok := f.levels[record.Channel]; ok {
+		return record.Level >= val
 	}
-	if f.is_buffering {
-		// shift first element
-		if cap(f.buffer) == len(f.buffer) {
-			f.buffer = append(f.buffer[:0], f.buffer[1:]...)
-		}
-		f.buffer = append(f.buffer, record)
-		if val, ok := f.levels[record.Channel]; ok && record.Level >= val {
-			if f.stop_buffering {
-				f.is_buffering = false
-			}
-			f.bufferWalk(func(r *logger.Record) {
-				if f.handler.Support(*r) {
-					f.handler.Handle(r)
-				}
-			})
-			f.buffer = f.buffer[:0]
-		}
-	} else {
-		f.handler.Handle(record)
-	}
-	return f.bubble
+	return false
+}
+
+func (f *ThresholdChannelHandler) ValidateBuffering(buf BufferInterface) {
+	buf.SetBuffering(true)
 }
