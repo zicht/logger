@@ -35,8 +35,8 @@ func TestThresholdChannel(t *testing.T) {
 		},
 		5,
 	)
-	handler.Strategy = &noop{handler.levels}
-	handler.handler.SetFormatter(&formatter{})
+	handler.(*threshold).Strategy = &noop{handler.(*threshold).Strategy.(*ThresholdChannelHandler).levels}
+	handler.(*threshold).handler.SetFormatter(&formatter{})
 
 	if true != handler.Support(record[0]) {
 		t.Errorf("Expecting to support record %#v", record)
@@ -48,13 +48,13 @@ func TestThresholdChannel(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		handler.Handle(&record[0])
 	}
-	if s := len(handler.buffer); s != 5 {
-		t.Errorf("Expecting buffer size not to exceed 5, size: %d, cap %d.", len(handler.buffer), cap(handler.buffer))
+	if s := len(handler.(*threshold).buffer); s != 5 {
+		t.Errorf("Expecting buffer size not to exceed 5, size: %d, cap %d.", len(handler.(*threshold).buffer), cap(handler.(*threshold).buffer))
 	}
 	record = append(record, getRecord("foo", logger.ERROR, logger.ChannelName("foo")))
 	handler.Handle(&record[1])
-	if s := len(handler.buffer); s != 5 {
-		t.Errorf("Expecting buffer size not to exceed 5, size: %d, cap %d.", len(handler.buffer), cap(handler.buffer))
+	if s := len(handler.(*threshold).buffer); s != 5 {
+		t.Errorf("Expecting buffer size not to exceed 5, size: %d, cap %d.", len(handler.(*threshold).buffer), cap(handler.(*threshold).buffer))
 	}
 	if buffer.Len() > 0 {
 		t.Errorf("Logger should not have wirtten got: %s", buffer.String())
@@ -62,7 +62,7 @@ func TestThresholdChannel(t *testing.T) {
 	record = append(record, getRecord("foo", logger.ALERT, logger.ChannelName("foo")))
 	handler.Handle(&record[2])
 	if str := buffer.String(); str != "DEBUG\nDEBUG\nDEBUG\nERROR\nALERT\n" {
-		t.Errorf("Expecting: 'DEBUG\nDEBUG\nDEBUG\nERROR\nALERT\n' got: %s size: %d, cap %d", str, len(handler.buffer), cap(handler.buffer))
+		t.Errorf("Expecting: 'DEBUG\nDEBUG\nDEBUG\nERROR\nALERT\n' got: %s size: %d, cap %d", str, len(handler.(*threshold).buffer), cap(handler.(*threshold).buffer))
 	}
 
 	buffer.Truncate(0)
@@ -72,8 +72,8 @@ func TestThresholdChannel(t *testing.T) {
 		t.Errorf("Expecting: 'DEBUG' got: %s", buffer.String())
 	}
 
-	handler.is_buffering = true
-	handler.clearBuffer()
+	handler.(*threshold).is_buffering = true
+	handler.(*threshold).clearBuffer()
 
 	//handler.SetStopBuffering(false)
 
@@ -82,13 +82,13 @@ func TestThresholdChannel(t *testing.T) {
 	handler.Handle(&record[4])
 	record = append(record, getRecord("foo", logger.WARNING, logger.ChannelName("bar")))
 	handler.Handle(&record[5])
-	if s := len(handler.buffer); s != 2 {
-		t.Errorf("Expecting buffer size not to exceed 2, size: %d, cap %d.", len(handler.buffer), cap(handler.buffer))
+	if s := len(handler.(*threshold).buffer); s != 2 {
+		t.Errorf("Expecting buffer size not to exceed 2, size: %d, cap %d.", len(handler.(*threshold).buffer), cap(handler.(*threshold).buffer))
 	}
 	record = append(record, getRecord("foo", logger.ERROR, logger.ChannelName("bar")))
 	handler.Handle(&record[6])
 	if str := buffer.String(); str != "ERROR\nWARNING\nERROR\n" {
-		t.Errorf("Expecting: 'ERROR\nWARNING\nERROR\n' got: %s size: %d, cap %d", str, len(handler.buffer), cap(handler.buffer))
+		t.Errorf("Expecting: 'ERROR\nWARNING\nERROR\n' got: %s size: %d, cap %d", str, len(handler.(*threshold).buffer), cap(handler.(*threshold).buffer))
 	}
 }
 
@@ -131,11 +131,11 @@ func TestThresholdChannel_channel(t *testing.T) {
 		logger.ChannelName("!main"),
 	)
 	if true == handler.GetChannels().Support(record.Channel) {
-		t.Errorf("Handler should not support channel %s (handler: %s)", record.Channel.GetName(), (*handler.channels)[handler.channels.FindChannel("main")])
+		t.Errorf("Handler should not support channel %s (handler: %s)", record.Channel.GetName(), (*handler.(*threshold).channels)[handler.(*threshold).channels.FindChannel("main")])
 	}
 
 	if false == handler.GetChannels().Support(logger.ChannelName("test")) {
-		t.Errorf("Handler should support channel %s (handler: %s)", record.Channel.GetName(), (*handler.channels)[handler.channels.FindChannel("main")])
+		t.Errorf("Handler should support channel %s (handler: %s)", record.Channel.GetName(), (*handler.(*threshold).channels)[handler.(*threshold).channels.FindChannel("main")])
 	}
 }
 

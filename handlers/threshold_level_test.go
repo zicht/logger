@@ -22,14 +22,14 @@ func TestThresholdLevel(t *testing.T) {
 	buffer := new(bytes.Buffer)
 	record := getRecord("bar", logger.DEBUG, logger.ChannelName("main"))
 	handler := NewThresholdLevelHandler(NewWriterHandler(buffer, logger.DEBUG), logger.ERROR, 5)
-	handler.handler.SetFormatter(&formatter{})
+	handler.(*threshold).handler.SetFormatter(&formatter{})
 	if true != handler.Support(record) {
 		t.Errorf("Expecting to support record %#v", record)
 	}
 	//if true != handler.IsStopBuffering() {
 	//	t.Error("Expecting default stop buffering to be true")
 	//}
-	if true != handler.IsBuffering() {
+	if true != handler.(*threshold).IsBuffering() {
 		t.Error("Expecting default buffering to be true")
 	}
 	handler.Handle(&record)
@@ -39,8 +39,8 @@ func TestThresholdLevel(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		handler.Handle(&record)
 	}
-	if s := len(handler.buffer); s != 5 {
-		t.Errorf("Expecting buffer size not to exceed 5, size: %d, cap %d.", len(handler.buffer), cap(handler.buffer))
+	if s := len(handler.(*threshold).buffer); s != 5 {
+		t.Errorf("Expecting buffer size not to exceed 5, size: %d, cap %d.", len(handler.(*threshold).buffer), cap(handler.(*threshold).buffer))
 	}
 	nr := getRecord("foo", logger.ERROR, logger.ChannelName("main"))
 	handler.Handle(&nr)
@@ -55,12 +55,12 @@ func TestThresholdLevel(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		handler.Handle(&record)
 	}
-	if s := len(handler.buffer); s != 5 {
-		t.Errorf("Expecting buffer size not to exceed 5, size: %d, cap %d.", len(handler.buffer), cap(handler.buffer))
+	if s := len(handler.(*threshold).buffer); s != 5 {
+		t.Errorf("Expecting buffer size not to exceed 5, size: %d, cap %d.", len(handler.(*threshold).buffer), cap(handler.(*threshold).buffer))
 	}
-	handler.Clear()
-	if s := len(handler.buffer); s != 0 {
-		t.Errorf("Expecting buffer size to be 0, size: %d, cap %d.", len(handler.buffer), cap(handler.buffer))
+	handler.(*threshold).Clear()
+	if s := len(handler.(*threshold).buffer); s != 0 {
+		t.Errorf("Expecting buffer size to be 0, size: %d, cap %d.", len(handler.(*threshold).buffer), cap(handler.(*threshold).buffer))
 	}
 }
 
@@ -68,11 +68,11 @@ func TestThresholdLevel_close(t *testing.T) {
 	writer := &testWriter{}
 	handler := NewThresholdLevelHandler(NewWriterHandler(writer, logger.DEBUG), logger.ERROR, 5)
 
-	if err := handler.Close(); err != nil {
+	if err := handler.(*threshold).Close(); err != nil {
 		t.Errorf("Expecting to get nil error got %#v", err)
 	}
 	writer.e = errors.New("foo")
-	if err := handler.Close(); err == nil {
+	if err := handler.(*threshold).Close(); err == nil {
 		t.Error("Expecting to get a error")
 	} else {
 		if str := err.Error(); str != "foo" {
@@ -80,8 +80,8 @@ func TestThresholdLevel_close(t *testing.T) {
 		}
 	}
 	// no io.Closer handler
-	handler.handler = &stub_handler{}
-	if err := handler.Close(); err != nil {
+	handler.(*threshold).handler = &stub_handler{}
+	if err := handler.(*threshold).Close(); err != nil {
 		t.Errorf("Expecting to get nil error got %#v", err)
 	}
 }
@@ -111,11 +111,11 @@ func TestThresholdLevel_channel(t *testing.T) {
 	handler := NewThresholdLevelHandler(NewWriterHandler(buff, logger.DEBUG), logger.ERROR, 5, logger.ChannelName("!main"))
 
 	if true == handler.GetChannels().Support(record.Channel) {
-		t.Errorf("Handler should not support channel %s (handler: %s)", record.Channel.GetName(), (*handler.channels)[handler.channels.FindChannel("main")])
+		t.Errorf("Handler should not support channel %s (handler: %s)", record.Channel.GetName(), (*handler.(*threshold).channels)[handler.(*threshold).channels.FindChannel("main")])
 	}
 
 	if false == handler.GetChannels().Support(logger.ChannelName("test")) {
-		t.Errorf("Handler should support channel %s (handler: %s)", record.Channel.GetName(), (*handler.channels)[handler.channels.FindChannel("main")])
+		t.Errorf("Handler should support channel %s (handler: %s)", record.Channel.GetName(), (*handler.(*threshold).channels)[handler.(*threshold).channels.FindChannel("main")])
 	}
 }
 

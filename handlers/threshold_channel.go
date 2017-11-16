@@ -13,30 +13,25 @@ import (
 // matched against the giver record
 type ThresholdChannelHandler struct {
 	levels 		 map[logger.ChannelName]logger.LogLevel
-	threshold
 }
 
-func NewThresholdChannelHandler(handler logger.HandlerInterface, levels map[logger.ChannelName]logger.LogLevel, buffSize int, channels ...logger.ChannelName) *ThresholdChannelHandler {
+func NewThresholdChannelHandler(handler logger.HandlerInterface, levels map[logger.ChannelName]logger.LogLevel, buffSize int, channels ...logger.ChannelName) logger.HandlerInterface {
 	cn := new(logger.ChannelNames)
 	for _, c := range channels {
 		cn.AddChannel(c)
 	}
-	thresholdHandler := &ThresholdChannelHandler{
-		levels: levels,
-		threshold: threshold{
-			handler: handler,
-			buffer: make([]*logger.Record, 0, buffSize),
-			is_buffering: true,
-			Handler: Handler{
-				channels:   cn,
-				level:      logger.LogLevel(0),
-				bubble:     true,
-				processors: new(logger.Processors),
-			},
+	return &threshold{
+		Strategy: &ThresholdChannelHandler{levels},
+		handler: handler,
+		buffer: make([]*logger.Record, 0, buffSize),
+		is_buffering: true,
+		Handler: Handler{
+			channels:   cn,
+			level:      logger.LogLevel(0),
+			bubble:     true,
+			processors: new(logger.Processors),
 		},
 	}
-	thresholdHandler.Strategy = thresholdHandler
-	return thresholdHandler
 }
 
 func (f *ThresholdChannelHandler) StopBuffering(record *logger.Record) bool {
