@@ -1,8 +1,9 @@
 package handlers
 
 import (
-	"github.com/pbergman/logger"
 	"io"
+
+	"github.com/pbergman/logger"
 )
 
 type WriterHandler struct {
