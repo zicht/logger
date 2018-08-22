@@ -47,8 +47,12 @@ func (h *MappedWriterHandler) Handle(record *logger.Record) bool {
 
 	h.processRecord(record)
 
-	if err := h.GetFormatter().Format(*record, h.writers[level]); err != nil {
+	if buf, err := h.GetFormatter().Format(*record); err != nil {
 		panic("Handler: Failed to format message, " + err.Error())
+	} else {
+		if _, err := h.writers[level].Write(buf); err != nil {
+			panic("Handler: Failed to write message, " + err.Error())
+		}
 	}
 
 	return h.bubble

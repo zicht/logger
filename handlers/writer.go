@@ -31,8 +31,12 @@ func (w *WriterHandler) Handle(record *logger.Record) bool {
 
 	w.processRecord(record)
 
-	if err := w.GetFormatter().Format(*record, w.writer); err != nil {
+	if buf, err := w.GetFormatter().Format(*record); err != nil {
 		panic("Handler: Failed to format message, " + err.Error())
+	} else {
+		if _, err := w.writer.Write(buf); err != nil {
+			panic("Handler: Failed to write message, " + err.Error())
+		}
 	}
 
 	return w.bubble

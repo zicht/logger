@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -136,7 +137,7 @@ func TestLogger_channel(t *testing.T) {
 	logger.Get("foo")
 
 	// check lazy loading
-	if (*logger.channels)["foo"] == nil {
+	if logger.channels.c["foo"] == nil {
 		t.Error("Expecting to be a Chanel instance not nil")
 	}
 }
@@ -229,10 +230,10 @@ func logAll(l LoggerInterface, r Record) {
 }
 
 type formatter struct {
-	f func(r Record, w io.Writer) error
+	f func(r Record) ([]byte, error)
 }
 
-func (f formatter) Format(r Record, w io.Writer) error { return f.f(r, w) }
+func (f formatter) Format(r Record) ([]byte, error) { return f.f(r) }
 
 type handler struct {
 	level     LogLevel
@@ -260,15 +261,17 @@ func defaultHandler(level LogLevel, writer io.Writer) *handler {
 	return &handler{
 		level: level,
 		formatter: &formatter{
-			func(r Record, w io.Writer) error {
+			func(r Record) ([]byte, error) {
+				buf := new(bytes.Buffer)
 				r.Time = test_time
-				_, e := fmt.Fprintln(w, r)
-				return e
+				_, e := fmt.Fprintln(buf, r)
+				return buf.Bytes(), e
 			},
 		},
 		buff: writer,
 		handle: func(r *Record, h *handler) bool {
-			h.GetFormatter().Format(*r, h.buff)
+			b, _ := h.GetFormatter().Format(*r)
+			h.buff.Write(b)
 			return h.bubble
 		},
 		channels: new(ChannelNames),

@@ -9,7 +9,7 @@ import (
 )
 
 type noop struct {
-	levels  map[logger.ChannelName]logger.LogLevel
+	levels map[logger.ChannelName]logger.LogLevel
 }
 
 func (f *noop) StopBuffering(record *logger.Record) bool {
@@ -20,7 +20,6 @@ func (f *noop) StopBuffering(record *logger.Record) bool {
 }
 
 func (f *noop) ValidateBuffering(buf BufferInterface) {}
-
 
 func TestThresholdChannel(t *testing.T) {
 	buffer := new(bytes.Buffer)

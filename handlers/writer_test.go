@@ -33,10 +33,11 @@ func TestWriter(t *testing.T) {
 	if true == handler.Support(getRecord("bar", logger.DEBUG, logger.ChannelName("main"))) {
 		t.Errorf("Handler should not support level %s (%s < %s)", logger.DEBUG, logger.DEBUG, handler.level)
 	}
-	if err := handler.GetFormatter().Format(record, handler.writer); err != nil {
+	out, err := handler.GetFormatter().Format(record)
+	if err != nil {
 		t.Error(err.Error())
 	}
-	if buff.String() != "[2016-01-02 10:20:30.000000] main.WARNING: bar \n" {
+	if string(out) != "[2016-01-02 10:20:30.000000] main.WARNING: bar \n" {
 		t.Errorf("Expecting '[2016-01-02 10:20:30.000000] main.WARNING: bar' got: %s", buff.String())
 	}
 }

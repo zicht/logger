@@ -12,16 +12,16 @@ type BufferStrategy interface {
 	ValidateBuffering(BufferInterface)
 }
 
-type BufferInterface interface{
+type BufferInterface interface {
 	SetBuffering(v bool)
 	IsBuffering() bool
 }
 
 type threshold struct {
-	handler 		logger.HandlerInterface
-	buffer  		[]*logger.Record
-	is_buffering   	bool
-	Strategy		BufferStrategy
+	handler      logger.HandlerInterface
+	buffer       []*logger.Record
+	is_buffering bool
+	Strategy     BufferStrategy
 	// embedded handler
 	Handler
 }

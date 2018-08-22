@@ -12,7 +12,7 @@ import (
 // threshold level you set a map channels and levels that will be
 // matched against the giver record
 type ThresholdChannelHandler struct {
-	levels 		 map[logger.ChannelName]logger.LogLevel
+	levels map[logger.ChannelName]logger.LogLevel
 }
 
 func NewThresholdChannelHandler(handler logger.HandlerInterface, levels map[logger.ChannelName]logger.LogLevel, buffSize int, channels ...logger.ChannelName) logger.HandlerInterface {
@@ -21,9 +21,9 @@ func NewThresholdChannelHandler(handler logger.HandlerInterface, levels map[logg
 		cn.AddChannel(c)
 	}
 	return &threshold{
-		Strategy: &ThresholdChannelHandler{levels},
-		handler: handler,
-		buffer: make([]*logger.Record, 0, buffSize),
+		Strategy:     &ThresholdChannelHandler{levels},
+		handler:      handler,
+		buffer:       make([]*logger.Record, 0, buffSize),
 		is_buffering: true,
 		Handler: Handler{
 			channels:   cn,

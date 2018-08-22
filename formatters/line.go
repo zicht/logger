@@ -1,15 +1,19 @@
 package formatters
 
 import (
+	"bytes"
 	"encoding/json"
-	"github.com/pbergman/logger"
-	"io"
+	"sync"
 	"text/template"
+
+	"github.com/pbergman/logger"
 )
 
 type lineFormatter struct {
 	line string
 	tmpl *template.Template
+	lock sync.Mutex
+	buf  *bytes.Buffer
 }
 
 func NewLineFormatter() *lineFormatter {
@@ -19,7 +23,7 @@ func NewLineFormatter() *lineFormatter {
 }
 
 func NewCustomLineFormatter(line string) *lineFormatter {
-	return &lineFormatter{line: line}
+	return &lineFormatter{line: line, buf: new(bytes.Buffer)}
 }
 
 func (l *lineFormatter) GetTemplate() *template.Template {
@@ -49,7 +53,7 @@ func (l *lineFormatter) GetTemplate() *template.Template {
 	return l.tmpl
 }
 
-func (l *lineFormatter) Format(record logger.Record, writer io.Writer) (err error) {
+func (l *lineFormatter) Format(record logger.Record) (raw []byte, err error) {
 
 	defer func() {
 		if e, o := recover().(error); o {
@@ -57,5 +61,14 @@ func (l *lineFormatter) Format(record logger.Record, writer io.Writer) (err erro
 		}
 	}()
 
-	return l.GetTemplate().Execute(writer, record)
+	l.lock.Lock()
+
+	defer l.lock.Unlock()
+	defer l.buf.Truncate(0)
+
+	if err := l.GetTemplate().Execute(l.buf, record); err != nil {
+		return nil, err
+	}
+
+	return l.buf.Bytes(), err
 }

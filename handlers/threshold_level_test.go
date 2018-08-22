@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"errors"
-	"io"
 	"os"
 	"testing"
 
@@ -13,9 +12,8 @@ import (
 
 type formatter struct{}
 
-func (f formatter) Format(r logger.Record, w io.Writer) error {
-	_, e := w.Write([]byte(r.Level.String() + "\n"))
-	return e
+func (f formatter) Format(r logger.Record) ([]byte, error) {
+	return []byte(r.Level.String() + "\n"), nil
 }
 
 func TestThresholdLevel(t *testing.T) {

@@ -17,9 +17,9 @@ func NewThresholdLevelHandler(handler logger.HandlerInterface, level logger.LogL
 		cn.AddChannel(c)
 	}
 	return &threshold{
-		handler:handler,
-		Strategy: &ThresholdLevelHandler{level},
-		buffer: make([]*logger.Record, 0, buffSize),
+		handler:      handler,
+		Strategy:     &ThresholdLevelHandler{level},
+		buffer:       make([]*logger.Record, 0, buffSize),
 		is_buffering: true,
 		Handler: Handler{
 			channels:   cn,
