@@ -1,41 +1,32 @@
 package logger
 
 import (
-	"sort"
+	"strconv"
 )
 
-type ErrorStack []error
+type Errors []error
 
-func (e *ErrorStack) Add(err error) {
-	(*e) = append(*e, err)
+func (e *Errors) append(n error) {
+	*e = append(*e, n)
 }
 
-func (e *ErrorStack) Len() int {
-	return len(*e)
-}
-
-func (e *ErrorStack) keys() []int {
-	keys := []int{}
-	for k := range *e {
-		keys = append(keys, k)
-	}
-	sort.Ints(keys)
-	return keys
-}
-
-func (e *ErrorStack) Error() string {
-	if e.Len() > 0 {
-		var str string
-		var keys []int = e.keys()
-		var last int = keys[len(keys)-1]
-		for _, i := range keys {
-			str += (*e)[i].Error()
-			if i != last {
-				str += "\n"
-			}
-		}
-		return str
+func (e Errors) Error() string {
+	var err string
+	if s := len(e); s == 1 {
+		err = "1 error occurred:"
 	} else {
-		return ""
+		err = strconv.Itoa(s) + " errors occurred:"
 	}
+	for i, c := 0, len(e); i < c; i++ {
+		err += "\n\t" + e[i].Error()
+	}
+	err += "\n"
+	return err
+}
+
+func (e Errors) GetError() error {
+	if nil == e || len(e) == 0 {
+		return nil
+	}
+	return e
 }

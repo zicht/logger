@@ -5,28 +5,26 @@ import (
 	"testing"
 )
 
-func TestError(t *testing.T) {
+func TestErrors(t *testing.T) {
+	var err Errors
 
-	err := new(ErrorStack)
-
-	if len := err.Len(); len > 0 {
-		t.Errorf("Expecting to have 0 error elements got %d", len)
+	if err.GetError() != nil {
+		t.Fatalf("expected to get nil")
 	}
 
-	if str := err.Error(); str != "" {
-		t.Errorf("Expecting '' got: %s", str)
+	err.append(errors.New("hello"))
+
+	if err.GetError() == nil {
+		t.Fatalf("expected not to get nil")
 	}
 
-	err.Add(errors.New("First  error"))
-	err.Add(errors.New("Second error"))
-
-	if len := err.Len(); len != 2 {
-		t.Errorf("Expecting to have 2 error elements got %d", len)
+	if s := err.Error(); s != "1 error occurred:\n\thello\n" {
+		t.Fatalf("expected:\n%q\nGot\n%q", "1 error occurred:\n\thello\n", s)
 	}
 
-	err.Add(errors.New("Extra  error"))
+	err.append(errors.New("world"))
 
-	if str := err.Error(); str != "First  error\nSecond error\nExtra  error" {
-		t.Errorf("Expecting 'First  error\nSecond error\nExtra  error' got: %s", str)
+	if s := err.Error(); s != "2 errors occurred:\n\thello\n\tworld\n" {
+		t.Fatalf("expected:\n%q\nGot\n%q", "2 errors occurred:\n\thello\n\tworld\n", s)
 	}
 }

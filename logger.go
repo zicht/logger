@@ -3,194 +3,92 @@ package logger
 import (
 	"fmt"
 	"io"
-	"sync"
 	"time"
 )
 
-type (
-	LoggerInterface interface {
-		Emergency(message interface{})
-		Alert(message interface{})
-		Critical(message interface{})
-		Error(message interface{})
-		Warning(message interface{})
-		Notice(message interface{})
-		Info(message interface{})
-		Debug(message interface{})
-	}
-	Logger struct {
-		name       string
-		channels   *Channels
-		handlers   *Handlers
-		processors *Processors
-		mutex      sync.RWMutex
-	}
-	Channels struct {
-		c map[string]*Channel
-		m sync.RWMutex
-	}
-)
-
-func NewLogger(name string, handlers ...HandlerInterface) *Logger {
-	handler := new(Handlers)
-	for _, h := range handlers {
-		(*handler) = append(*handler, h)
-	}
-	channels := new(Channels)
-	channels.c = make(map[string]*Channel, 1)
-	channels.c[name] = nil
-	return &Logger{
-		name:       name,
-		channels:   channels,
-		processors: new(Processors),
-		handlers:   handler,
-	}
+func NewLogger(name string, handler ...HandlerInterface) *Logger {
+	return &Logger{name: name, handlers: handlers{processor: processor{processors: make([]ProcessorInterface, 0)}, handlers: handler}}
 }
 
-func (l *Logger) AddProcessor(processor Processor) {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
-	(*l.processors) = append(*l.processors, processor)
+type Logger struct {
+	name string
+	handlers
 }
 
-func (l *Logger) GetProcessors() *Processors {
-	l.mutex.RLock()
-	defer l.mutex.RUnlock()
-	return l.processors
-}
-
-func (l *Logger) AddHandler(handler HandlerInterface) error {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
-	(*l.handlers) = append(*l.handlers, handler)
-	return nil
-}
-
-func (l *Logger) GetHandlers() *Handlers {
-	l.mutex.RLock()
-	defer l.mutex.RUnlock()
-	return l.handlers
-}
-
-func (l *Logger) Get(name string) LoggerInterface {
-	l.channels.m.Lock()
-	defer l.channels.m.Unlock()
-	var channel *Channel
-	var exist bool
-	if channel, exist = l.channels.c[name]; !exist || channel == nil {
-		channel = &Channel{
-			logger: l,
-			name:   ChannelName(name),
-		}
-		l.channels.c[name] = channel
-	}
-	return channel
-}
-
-func (l *Logger) handle(record *Record) {
-
-	if l.processors.Len() > 0 {
-		for _, k := range l.processors.Keys() {
-			(*l.processors)[k](record)
-		}
-	}
-	if l.handlers.Len() > 0 {
-		for _, k := range l.handlers.Keys() {
-			if (*l.handlers)[k].HasChannels() && false == (*l.handlers)[k].GetChannels().Support(record.Channel) {
-				continue
-			}
-			if (*l.handlers)[k].Support(*record) {
-				if !(*l.handlers)[k].Handle(record) {
-					break
-				}
-			}
-		}
-	}
-}
-
-func (l *Logger) log(level LogLevel, channel ChannelName, message interface{}) {
-
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
-
+func (l *Logger) log(level LogLevel, name string, message interface{}) {
 	var record *Record
-
-	if value, ok := message.(LogMessageInterface); ok {
+	switch value := message.(type) {
+	case LogMessageInterface:
 		message, context := value.GetLogMessage()
 		record = &Record{Message: message, Context: context}
-	} else {
-		switch value := message.(type) {
-		case *Record:
-			record = value
-		case Record:
-			record = &value
-		case *cm:
-			record = &Record{Message: value.m, Context: value.c}
-		case string:
-			record = &Record{Message: value}
-		case error:
-			record = &Record{Message: value.Error()}
-		default:
-			record = &Record{Message: fmt.Sprint(value)}
-		}
+	case *Record:
+		record = value
+	case Record:
+		record = &value
+	case string:
+		record = &Record{Message: value}
+	case error:
+		record = &Record{Message: value.Error()}
+	default:
+		record = &Record{Message: fmt.Sprint(value)}
 	}
-
-	record.Time = time.Now()
+	if record.Time.IsZero() {
+		record.Time = time.Now()
+	}
+	if nil == record.Context {
+		record.Context = make(map[string]interface{})
+	}
 	record.Level = level
-	record.Channel = channel
+	record.Name = name
 	l.handle(record)
 }
 
+// WithName will return an new logger with the given name and shared internal handler
+func (l *Logger) WithName(name string) *Logger {
+	return &Logger{name: name, handlers: l.handlers}
+}
+
 func (l *Logger) Close() error {
-	var errStack *ErrorStack = nil
-	if l.handlers.Len() > 0 {
-		for _, k := range l.handlers.Keys() {
-			if closer, ok := (*l.handlers)[k].(io.Closer); ok {
-				if err := closer.Close(); err != nil {
-					if errStack == nil {
-						errStack = new(ErrorStack)
-					}
-					errStack.Add(err)
-				}
+	var err = new(Errors)
+	for _, h := range l.handlers.handlers {
+		if v, o := h.(io.Closer); o {
+			if e := v.Close(); e != nil {
+				err.append(e)
 			}
 		}
 	}
-	// explicit return nil else returns 0 in logger_test.go:224
-	if errStack != nil {
-		return errStack
-	} else {
-		return nil
+	for _, p := range l.processors {
+		if v, o := p.(io.Closer); o {
+			if e := v.Close(); e != nil {
+				err.append(e)
+			}
+		}
 	}
+	return err.GetError()
 }
 
-func (l *Logger) Emergency(message interface{}) {
-	l.Get(l.name).Emergency(message)
+// NewWriter creates an wrapper that can be used as an io.Writer to print all given
+// message to the supplied level
+//
+// example:
+//
+// buf := new(bytes.Buffer)
+// writer := io.MultiWriter(buf, logger.NewWriter(logger.Debug))
+//
+// extending internal log:
+//
+// log.SetFlags(0)
+// log.SetOutput(logger.NewWriter(logger.Debug))
+//
+func (l *Logger) NewWriter(level LogLevel) io.Writer {
+	return &writer{logger: l, level: level}
 }
 
-func (l *Logger) Alert(message interface{}) {
-	l.Get(l.name).Alert(message)
-}
-
-func (l *Logger) Critical(message interface{}) {
-	l.Get(l.name).Critical(message)
-}
-
-func (l *Logger) Error(message interface{}) {
-	l.Get(l.name).Error(message)
-}
-
-func (l *Logger) Warning(message interface{}) {
-	l.Get(l.name).Warning(message)
-}
-
-func (l *Logger) Notice(message interface{}) {
-	l.Get(l.name).Notice(message)
-}
-
-func (l *Logger) Info(message interface{}) {
-	l.Get(l.name).Info(message)
-}
-
-func (l *Logger) Debug(message interface{}) {
-	l.Get(l.name).Debug(message)
-}
+func (l Logger) Emergency(message interface{}) { l.log(Emergency, l.name, message) }
+func (l Logger) Alert(message interface{})     { l.log(Alert, l.name, message) }
+func (l Logger) Critical(message interface{})  { l.log(Critical, l.name, message) }
+func (l Logger) Error(message interface{})     { l.log(Error, l.name, message) }
+func (l Logger) Warning(message interface{})   { l.log(Warning, l.name, message) }
+func (l Logger) Notice(message interface{})    { l.log(Notice, l.name, message) }
+func (l Logger) Info(message interface{})      { l.log(Info, l.name, message) }
+func (l Logger) Debug(message interface{})     { l.log(Debug, l.name, message) }
