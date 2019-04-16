@@ -24,8 +24,8 @@ func (e Errors) Error() string {
 	return err
 }
 
-func (e Errors) GetError() error {
-	if nil == e || len(e) == 0 {
+func (e *Errors) GetError() error {
+	if nil == e || len(*e) == 0 {
 		return nil
 	}
 	return e

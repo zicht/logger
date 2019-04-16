@@ -52,7 +52,7 @@ func (f *FormatHandler) GetFormatter() FormatterInterface {
 func NewFormatHandler(formatter FormatterInterface) (FormatHandler, error) {
 	var err error
 	if formatter == nil {
-		formatter, err = NewLineFormatter("[{{ .Time.Format \"2006-01-02 15:04:05.000000\" }}] {{ .Name }}.{{ .Level }}: {{ .Message }}{{ if .Context}} {{ json .Context }}{{end}}\n")
+		formatter, err = NewLineFormatter("[{{ .Time.Format \"2006-01-02 15:04:05.000000\" }}] {{ .Name }}.{{ .Level }}: {{ .Message }}{{ if .Context }} {{ json .Context }}{{end}}\n")
 	}
 	return FormatHandler{formatter: formatter}, err
 }

@@ -32,12 +32,7 @@ func (l *Logger) log(level LogLevel, name string, message interface{}) {
 	default:
 		record = &Record{Message: fmt.Sprint(value)}
 	}
-	if record.Time.IsZero() {
-		record.Time = time.Now()
-	}
-	if nil == record.Context {
-		record.Context = make(map[string]interface{})
-	}
+	record.Time = time.Now()
 	record.Level = level
 	record.Name = name
 	l.handle(record)
