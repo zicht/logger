@@ -39,7 +39,7 @@ func (l handlers) handle(r *Record) {
 	}
 }
 
-func (l *handlers) AddHandlers(h HandlerInterface) {
+func (l *handlers) AddHandler(h HandlerInterface) {
 	l.handlers = append(l.handlers, h)
 }
 

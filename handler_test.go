@@ -39,13 +39,13 @@ func TestFormatHandler(t *testing.T) {
 	if handlers[1].(*nopHandler).handled {
 		t.Fatalf("expected handler with index 1 not to be run")
 	}
-	handler.AddHandlers(&nopHandler{true, true, false})
+	handler.AddHandler(&nopHandler{true, true, false})
 	if i := handler.isHandling(&Record{}); i != 2 {
 		t.Fatalf("expected to have 2 returned got %d", i)
 	}
-	handler.AddHandlers(&nopHandler{true, true, false})
-	handler.AddHandlers(&nopHandler{false, true, false})
-	handler.AddHandlers(&nopHandler{false, true, false})
+	handler.AddHandler(&nopHandler{true, true, false})
+	handler.AddHandler(&nopHandler{false, true, false})
+	handler.AddHandler(&nopHandler{false, true, false})
 	handlers = handler.GetHandlers()
 	if l := len(handlers); l != 6 {
 		t.Fatalf("expected to have 6 handlers now got %d", l)
