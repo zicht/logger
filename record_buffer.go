@@ -1,20 +1,23 @@
 package logger
 
-import "sync"
+import (
+	"sync"
+)
 
 type recordBuffer struct {
 	buf  []*Record
 	lock sync.RWMutex
+	max  int
 }
 
 func newRecordBuffer(max int) *recordBuffer {
-	return &recordBuffer{buf: make([]*Record, 0, max)}
+	return &recordBuffer{buf: make([]*Record, 0, max), max: max}
 }
 
 func (b *recordBuffer) push(r *Record) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
-	if cap(b.buf) == len(b.buf) {
+	if b.max == len(b.buf) {
 		b.buf = append(b.buf[:0], b.buf[1:]...)
 	}
 	b.buf = append(b.buf, r)
