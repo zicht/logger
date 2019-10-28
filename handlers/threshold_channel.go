@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"github.com/pbergman/logger"
+	"github.com/zicht/logger"
 )
 
 // ThresholdChannelHandler is a logger that will buffer the record until

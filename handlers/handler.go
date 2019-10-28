@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/pbergman/logger"
-	"github.com/pbergman/logger/formatters"
+	"github.com/zicht/logger"
+	"github.com/zicht/logger/formatters"
 )
 
 type Handler struct {

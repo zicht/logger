@@ -3,7 +3,7 @@ package handlers
 import (
 	"io"
 
-	"github.com/pbergman/logger"
+	"github.com/zicht/logger"
 )
 
 type WriterHandler struct {

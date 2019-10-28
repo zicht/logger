@@ -5,7 +5,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/pbergman/logger"
+	"github.com/zicht/logger"
 )
 
 var test_time time.Time = time.Date(2016, 1, 2, 10, 20, 30, 0, time.Local)

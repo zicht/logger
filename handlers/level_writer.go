@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"github.com/pbergman/logger"
+	"github.com/zicht/logger"
 	"io"
 )
 

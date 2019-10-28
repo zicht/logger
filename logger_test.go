@@ -38,7 +38,7 @@ func ExampleLogger_processor() {
 	})
 	logger.Debug(struct{ name, message string }{"Exmaple", "Trace processor example"})
 	// Output:
-	// {main {Exmaple Trace processor example} map[func_name:github.com/pbergman/logger.ExampleLogger_processor] 2016-01-02 10:20:30 +0100 CET DEBUG}
+	// {main {Exmaple Trace processor example} map[func_name:github.com/zicht/logger.ExampleLogger_processor] 2016-01-02 10:20:30 +0100 CET DEBUG}
 }
 
 func ExampleLogger_cm() {

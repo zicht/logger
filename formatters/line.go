@@ -6,7 +6,7 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/pbergman/logger"
+	"github.com/zicht/logger"
 )
 
 type lineFormatter struct {

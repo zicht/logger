@@ -4,7 +4,7 @@ import (
 	"io"
 	"sort"
 
-	"github.com/pbergman/logger"
+	"github.com/zicht/logger"
 )
 
 type BufferStrategy interface {

@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"bytes"
-	"github.com/pbergman/logger"
-	"github.com/pbergman/logger/formatters"
+	"github.com/zicht/logger"
+	"github.com/zicht/logger/formatters"
 	"os"
 	"testing"
 )

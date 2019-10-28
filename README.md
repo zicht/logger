@@ -18,4 +18,4 @@ logger.MustGet("redis").Debug("foo")    // will print log message
 
 ```
 
-see [godoc.org](https://godoc.org/github.com/pbergman/logger) for docs
+see [godoc.org](https://godoc.org/github.com/zicht/logger) for docs
